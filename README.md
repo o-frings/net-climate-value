@@ -113,7 +113,10 @@ the engine.
 ```bibtex
 @article{frings2026ncv,
   title   = {The Net Climate Value of Carbon Credits: Pricing Leakage, Time, and Reversal},
-  author  = {Frings, Oliver and others},
+  author  = {Frings, Oliver and Abildtrup, Jens and Delacote, Philippe and
+             Kontoleon, Andreas and B{\"o}ttcher, Hannes and Chiti, Tommaso and
+             Rey, Ana and Diaci, Jurij and Lehtonen, Aleksi and Puelzl, Helga and
+             Schindlbacher, Andreas and Zavala, Miguel A.},
   journal = {Nature Climate Change},
   year    = {2026},
   note    = {Submitted}
