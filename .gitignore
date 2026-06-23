@@ -1,0 +1,19 @@
+# Generated outputs — reproducible from code
+output/
+engine/output/
+figures/output/
+
+# R package library (renv restores from renv.lock)
+renv/library/
+renv/staging/
+renv/sandbox/
+
+# Personal correspondence
+data/raw/wcc_registry_data_request_email.md
+
+# OS/IDE
+.DS_Store
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj

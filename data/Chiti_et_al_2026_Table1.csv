@@ -1,0 +1,114 @@
+biome,management,country,species,age,native,type,AGB_MgCO2,SOC_MgCO2,reference
+Boreal,Afforestation cropland,Finland,Picea abies,10,,C,2.53,-0.46,Tupek et al. 2021
+Boreal,Afforestation cropland,Finland,Picea abies,50,,C,5.93,0.73,Tupek et al. 2021
+Boreal,Afforestation cropland,Finland,Betula spp.,10,,B,0.40,-0.37,Tupek et al. 2021
+Boreal,Afforestation cropland,Finland,Betula spp.,50,,B,4.68,1.32,Tupek et al. 2021
+Boreal,Afforestation cropland,Sweden,Betula spp.,9,,B,3.04,-2.53,Rytter and Rytter 2020
+Boreal,Afforestation cropland,Sweden,Picea abies,9,,C,2.82,-3.51,Rytter and Rytter 2020
+Boreal,Afforestation cropland,Sweden,Populus spp.,9,,B,4.21,-2.12,Rytter and Rytter 2020
+Boreal,Afforestation cropland,Denmark,Picea abies,29,,C,15.32,,Vesterdal et al. 2002
+Boreal,Afforestation cropland,Denmark,Oak spp.,29,,B,9.89,,Vesterdal et al. 2002
+Boreal,Afforestation grassland,Finland,Picea abies,10,,C,2.38,0.40,Tupek et al. 2021
+Boreal,Afforestation grassland,Finland,Picea abies,50,,C,4.61,0.48,Tupek et al. 2021
+Boreal,Afforestation grassland,Finland,Betula spp.,10,,B,0.48,0.44,Tupek et al. 2021
+Boreal,Afforestation grassland,Finland,Betula spp.,50,,B,5.49,0.81,Tupek et al. 2021
+Boreal,Afforestation grassland,Norway,Picea abies,50,,C,,0.07,Strand et al. 2021
+Boreal,Peatland management,Global,,,,C/B,,3.40,Mander et al. 2024
+Boreal,Peatland management,Finland,Picea abies,,,C,,0,Peltoniemi et al. 2023
+Boreal,Peatland management,Finland,Picea abies,,,C,,,Rissanen et al. 2023
+Boreal,Peatland management,Finland,Picea abies,,,C,0.15,0.11,Lehtonen et al. 2023
+Boreal,Peatland management,Finland,Picea abies,,,C,10.65,,Aro et al. 2020
+Boreal,Peatland management,Scandinavia,Pinus sylvestris,,,C,,0.37,Wilson et al. 2016
+Boreal,Peatland management,Scandinavia,Pinus sylvestris,,,C,,0.26,Wilson et al. 2016
+Boreal,Peatland management,Scandinavia,Pinus sylvestris,,,C,,5.38,Wilson et al. 2016
+Boreal,Ash fertilisation,Finland,Picea abies/Pinus sylvestris,,,C,4.76,-0.48,Ojanen et al. 2019
+Boreal,Ash fertilisation,Sweden,Picea abies,,,C,11.45,,Van Sundert et al. 2021
+Boreal,Ash fertilisation,Finland,Pinus sylvestris,,,C,3.44,,Moilanen et al. 2015
+Boreal,Ash fertilisation,Finland,Pinus sylvestris,,,C,5.49,,Moilanen et al. 2013
+Boreal,Ash fertilisation,Norway,Picea abies,,,C,3.70,,Hanssen et al. 2020
+Boreal,Ash fertilisation,Finland,Pinus sylvestris,,,C,3.88,,Hytonen 2016
+Boreal,Longer rotation period,Sweden,Pinus sylvestris/Picea abies,,,C,4.21,,Peichl et al. 2023
+Boreal,Longer rotation period,Finland,Pinus sylvestris,,,C,0.66,,Akujärvi et al. 2019
+Boreal,Longer rotation period,Norway,Picea abies,,,C,4.58,,Stokland 2021
+Boreal,Longer rotation period,Finland,Pinus sylvestris/Picea abies,,,C,2.34,,Triviño et al. 2017
+Temperate,Afforestation cropland,Latvia,Picea abies/Pinus sylvestris,15,,C,6.41,-0.84,Petaja et al. 2023
+Temperate,Afforestation cropland,Latvia,Betula spp.,15,,B,6.22,-1.83,Petaja et al. 2023
+Temperate,Afforestation cropland,Czech Republic,Fagus/Quercus/Acer/Tilia,14,,B,16.03,6.22,Cukor et al. 2022
+Temperate,Afforestation cropland,Czech Republic,Picea abies,14,,C,18.67,5.49,Cukor et al. 2022
+Temperate,Afforestation cropland,Czech Republic,Populus/Alnus/Acer,52,,B,9.15,,Vacek et al. 2022
+Temperate,Afforestation cropland,Czech Republic,Spruce/Larix,52,,C,8.60,,Vacek et al. 2022
+Temperate,Afforestation cropland,Czech Republic,Spruce/Larix,,,C,12.27,,Zeidler et al. 2022
+Temperate,Afforestation cropland,Poland,Pinus sylvestris,10-50,,C,,1.24,Smal et al. 2019
+Temperate,Afforestation grassland,Italy/Germany,Picea abies,93-112,,C,10.06,1.06,Thuille and Schulze 2006
+Temperate,Afforestation grassland,Germany,Pinus sylvestris,120,,C,,0.91,Heinsdorf 1994
+Temperate,Afforestation grassland,Ireland,Fraxinus/Alder,4,,B,2.30,0.91,Peichl et al. 2010
+Temperate,Afforestation grassland,Ireland,Fraxinus ssp.,12,,B,9.95,-1.02,Wellock et al. 2014
+Temperate,Afforestation grassland,Ireland,Fraxinus ssp.,20,,B,8.60,-3.04,Wellock et al. 2014
+Temperate,Afforestation grassland,Ireland,Fraxinus ssp.,27,,B,5.85,-3.18,Wellock et al. 2014
+Temperate,Afforestation grassland,Ireland,Fraxinus ssp.,40,,B,7.39,-1.97,Wellock et al. 2014
+Temperate,Afforestation grassland,Switzerland,Norway spruce,40,,C,,0.37,Speckert et al. 2023
+Temperate,Afforestation grassland,Switzerland,Picea ssp.,25-120,,C,12.63,0,Hiltbrunner et al. 2013
+Temperate,Fertilisation,Germany,Fagus sylvatica,0-145,,B,,-0.77,Bauhus et al. 2004
+Temperate,Fertilisation,Germany,Several,,,Various,,0.66,Grüneberg et al. 2019
+Temperate,Fertilisation,Central/North Europe,Several,,,Various,2.01,0.51,De Vries et al. 2006
+Temperate,Peatland restoration,Global,Forested,,,,,-0.87,Wilson et al. 2016
+Temperate,Peatland restoration,Germany,Forested,,,,,-5.71,Tiemeyer et al. 2020
+Temperate,Peatland restoration,Germany,Pinus mugo/Picea abies,,,C,,-1.68,Hommeltenberg et al. 2014
+Temperate,Peatland restoration,Germany,Alnus glutinosa,,,B,47.43,,Schweiger et al. 2021
+Mediterranean,Afforestation cropland,Spain,Pinus sylvestris,52,N,C,13.58,,Ruiz Peinado et al. 2016
+Mediterranean,Afforestation cropland,Spain,Pinus pinaster,59,N,C,8.23,,Ruiz Peinado et al. 2013
+Mediterranean,Afforestation cropland,Italy,Pseudotsuga menziesii,11,P,C,10.58,,Coletta et al. 2016
+Mediterranean,Afforestation cropland,Spain,Ceratonia siliqua,26,N,B,,2.60,Palacios Rodriguez et al. 2022
+Mediterranean,Afforestation cropland,Spain,Quercus suber/ilex,11,N,B,,0.66,Renna et al. 2024
+Mediterranean,Afforestation cropland,Spain,Pinus halepensis,18,N,C,,2.01,Segura et al. 2016
+Mediterranean,Afforestation cropland,Spain,Populus ssp.,10,P,B,,6.73,Garcia-Campos et al. 2022
+Mediterranean,Afforestation cropland,Spain,Populus ssp.,5-10,P,B,,7.10,Sierra et al. 2013
+Mediterranean,Afforestation cropland,Spain,Populus ssp.,20-30,P,B,,3.30,Sierra et al. 2013
+Mediterranean,Afforestation cropland,Spain,Populus ssp.,50-100,P,B,,1.98,Sierra et al. 2013
+Mediterranean,Afforestation cropland,Italy,Quercus/Fraxinus/Salix/Populus,16,N,B,9.52,,Magnani et al. 2005
+Mediterranean,Afforestation cropland,Italy,Fraxinus/Prunus/Quercus,9,N,B,12.44,,Alberti et al. 2006
+Mediterranean,Afforestation cropland,Italy,Juglans regia,34,N,B,3.73,,Certini et al. 2023
+Mediterranean,Afforestation cropland,Italy,Quercus robur/Alnus,27,N,B,,1.68,Chiti et al. 2011
+Mediterranean,Afforestation cropland,Italy,Eucalyptus ssp.,,P,B,,1.79,Novara et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus globulus,10,P,B,28.29,-0.87,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus globulus,15,P,B,36.12,0.62,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus globulus,20,P,B,40.00,0.66,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus nitens,10,P,B,37.29,-2.05,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus nitens,15,P,B,44.07,-0.18,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Eucalyptus nitens,20,P,B,47.58,0.18,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Spain,Pinus radiata,30,P,C,35.17,1.02,Fernández-Núñez et al. 2010
+Mediterranean,Afforestation grassland,Spain,Pinus radiata,35,P,C,36.20,0.99,Pérez-Cruzado et al. 2012
+Mediterranean,Afforestation grassland,Italy,Pseudotsuga menziesii,11,P,C,10.58,,Coletta et al. 2016
+Mediterranean,Afforestation grassland,Spain,Pinus radiata,10,P,C,28.80,,Fernández-Núñez et al. 2010
+Mediterranean,Afforestation grassland,Spain,Betula ssp.,10,P,B,5.60,,Fernández-Núñez et al. 2010
+Mediterranean,Afforestation grassland,Spain,Pinus sylvestris,49,N,C,,-0.58,Nadal Romero et al. 2016
+Mediterranean,Afforestation grassland,Spain,Pinus nigra,49,N,C,,0.10,Nadal Romero et al. 2016
+Mediterranean,Afforestation grassland,Spain,Pinus sylvestris,55,N,C,,-0.55,Campo et al. 2019
+Mediterranean,Afforestation grassland,Spain,Pinus nigra,55,N,C,,1.57,Campo et al. 2019
+Mediterranean,Afforestation grassland,Italy,Pinus nigra,35,N,C,13.36,,Iovino et al. 2021
+Mediterranean,Afforestation grassland,Italy,Castanea sativa/Quercus spp.,10-25,N,B,8.97,,Iovino et al. 2021
+Mediterranean,Agroforestry,Italy/Spain,Malus/Pyrus/Prunus,,N,B,19.40,,Kay et al. 2019
+Mediterranean,Agroforestry,Spain,Prunus ssp.,,N,B,4.98,,López-Bellido Garrido et al. 2016
+Mediterranean,Agroforestry,Italy,Olea europaea,,N,B,8.16,,Proietti et al. 2012
+Mediterranean,Agroforestry,Spain,Quercus ilex,,N,B,0.47,,Kay et al. 2018
+Mediterranean,Agroforestry,Spain,Quercus suber,,N,B,3.00,,Kay et al. 2019
+Mediterranean,Agroforestry,Spain,Quercus suber,,N,B,3.00,,Palma et al. 2014
+Mediterranean,Agroforestry,Mediterranean,Paulownia ssp.,,P,B,12.44,,Kay et al. 2019
+Mediterranean,Agroforestry,Italy,Quercus suber,,N,B,,1.65,Francaviglia et al. 2012
+Mediterranean,Agroforestry,France,Juglans regia,,N,B,,1.06,Cardinael et al. 2017
+Mediterranean,Longer rotation,Spain,Pinus sylvestris,,N,C,10.87,,Moreno-Fernandez et al. 2015
+Mediterranean,Longer rotation,Spain,Pinus sylvestris,,N,C,13.73,,Moreno-Fernandez et al. 2015
+Mediterranean,Longer rotation,Spain,Pinus sylvestris,,N,C,6.88,,Pérez Cruzado et al. 2012
+Mediterranean,Longer rotation,Spain,Eucalyptus/Pinus radiata,,P,C,36.75,0.07,Pérez Cruzado et al. 2012
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Control,6.04,4.24,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Light,5.78,4.06,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Moderate,5.74,4.61,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Control,13.58,6.44,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Moderate,10.43,6.37,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus sylvestris,,N,Heavy,9.04,6.40,Bravo-Oviedo et al. 2015
+Mediterranean,Harvest Intensity,Spain,Pinus pinaster,,N,Control,8.24,7.21,Ruiz-Peinado et al. 2013
+Mediterranean,Harvest Intensity,Spain,Pinus pinaster,,N,Moderate,6.11,7.03,Ruiz-Peinado et al. 2013
+Mediterranean,Harvest Intensity,Spain,Pinus pinaster,,N,Heavy,10.58,6.44,Ruiz-Peinado et al. 2013
+Mediterranean,Harvest Intensity,Italy,Pseudotsuga menziesii,,P,Light,16.25,,Coletta et al. 2016
+Mediterranean,Harvest Intensity,Italy,Pseudotsuga menziesii,,P,Moderate,16.72,,Coletta et al. 2016
+Mediterranean,Harvest Intensity,Italy,Pseudotsuga menziesii,,P,Heavy,17.31,,Coletta et al. 2016

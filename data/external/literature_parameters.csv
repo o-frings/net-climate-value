@@ -1,0 +1,85 @@
+parameter,value,unit,source,notes
+# =============================================================================
+# DISTURBANCE PARAMETERS - Senf & Seidl (2021) Nature Sustainability
+# =============================================================================
+disturbed_area_pct,17,percent,Senf_Seidl_2021,"1986-2016, 39M ha of 210M ha"
+mean_patch_size,1.09,ha,Senf_Seidl_2021,"Left-skewed distribution, median 0.45 ha"
+median_patch_size,0.45,ha,Senf_Seidl_2021,"78% of disturbances <1 ha"
+avg_disturbance_freq,0.52,patches/km2/yr,Senf_Seidl_2021,"Median 0.37"
+max_disturbance_freq,31.21,patches/km2/yr,Senf_Seidl_2021,"Highest 1%: 3-31"
+mean_severity,0.77,probability,Senf_Seidl_2021,"Prob of stand-replacing"
+median_severity,0.83,probability,Senf_Seidl_2021,"High prevalence of severe"
+freq_increasing_pct,74,percent,Senf_Seidl_2021,"Share of forests with increasing frequency"
+severity_decreasing_pct,88,percent,Senf_Seidl_2021,"Share with decreasing severity"
+freq_explains_rate_var,71,percent,Senf_Seidl_2021,"Frequency vs size contribution"
+size_explains_rate_var,24,percent,Senf_Seidl_2021,"Size contribution to rate changes"
+# Country-specific (Extended Data Fig 5)
+lambda_finland,0.008,annual_rate,Senf_Seidl_2021,"Even-aged management"
+lambda_sweden,0.010,annual_rate,Senf_Seidl_2021,"Even-aged management"
+lambda_germany,0.012,annual_rate,Senf_Seidl_2021,"Central Europe"
+lambda_france,0.015,annual_rate,Senf_Seidl_2021,"Variable by region"
+lambda_spain,0.020,annual_rate,Senf_Seidl_2021,"Fire-dominated"
+lambda_portugal,0.035,annual_rate,Senf_Seidl_2021,"Highest fire freq >3/km2"
+# =============================================================================
+# LEAKAGE PARAMETERS - Kallio & Solberg (2018) Scand J For Res
+# =============================================================================
+leakage_norway_total_low,0.80,ratio,Kallio_Solberg_2018,"Scenario Low, ±50% harvest"
+leakage_norway_total_high,0.84,ratio,Kallio_Solberg_2018,"Scenario High, ±50%"
+leakage_norway_sawlog_range_low,0.60,ratio,Kallio_Solberg_2018,"Lower bound sawlogs"
+leakage_norway_sawlog_range_high,1.00,ratio,Kallio_Solberg_2018,"Upper bound sawlogs"
+leakage_sweden_share_initial,0.50,ratio,Kallio_Solberg_2018,"Sweden absorbs half initially"
+leakage_sweden_share_2040,0.10,ratio,Kallio_Solberg_2018,"Declines over time"
+supply_elasticity_sawlog,1.00,dimensionless,Kallio_Solberg_2018,"Base case"
+supply_elasticity_sawlog_alt,0.50,dimensionless,Kallio_Solberg_2018,"Sensitivity test"
+supply_elasticity_pulpwood,0.50,dimensionless,Kallio_Solberg_2018,"Less elastic"
+# =============================================================================
+# LEAKAGE PARAMETERS - Murray et al. (2004) Land Economics
+# =============================================================================
+leakage_pnw_federal,0.84,ratio,Murray_2004,"Pacific NW to N America"
+leakage_pnw_west_only,0.43,ratio,Murray_2004,"Within Western US"
+leakage_us_total,0.58,ratio,Murray_2004,"US total response"
+leakage_afforest_low,0.07,ratio,Murray_2004,"Afforestation-avoided deforestation"
+leakage_afforest_high,0.17,ratio,Murray_2004,"Pure afforestation scenario"
+leakage_setaside_pnww,0.162,ratio,Murray_2004,"Old growth PNWW"
+leakage_setaside_sc,0.683,ratio,Murray_2004,"South-Central less C-dense"
+elasticity_supply_weighted,0.46,dimensionless,Murray_2004,"All 4 supply regions"
+elasticity_demand,0.06,dimensionless,Murray_2004,"Absolute value, inelastic"
+preservation_param_f,0.045,ratio,Murray_2004,"QR0/QN0"
+predicted_leakage_formula,0.87,ratio,Murray_2004,"Using Eq 7 with params"
+# =============================================================================
+# CARBON SEQUESTRATION - Chiti et al. (2026) J Env Management
+# =============================================================================
+# Afforestation AGB (Mg CO2/ha/yr) - Fig 1
+afforest_agb_boreal_mature,15,MgCO2/ha/yr,Chiti_2026,"Mature stands >25yr"
+afforest_agb_boreal_young,5,MgCO2/ha/yr,Chiti_2026,"Young stands <25yr"
+afforest_agb_temperate_mature,20,MgCO2/ha/yr,Chiti_2026,"Mature on cropland"
+afforest_agb_temperate_young,17,MgCO2/ha/yr,Chiti_2026,"Young on cropland"
+afforest_agb_med_slow,8,MgCO2/ha/yr,Chiti_2026,"Native slow-growing"
+afforest_agb_med_fast,30,MgCO2/ha/yr,Chiti_2026,"Non-native fast-growing"
+# Afforestation SOC (Mg CO2/ha/yr) - Fig 1
+afforest_soc_boreal,3,MgCO2/ha/yr,Chiti_2026,"Cropland to forest"
+afforest_soc_temperate,2,MgCO2/ha/yr,Chiti_2026,"Peaks 10-30 yrs"
+afforest_soc_med,1,MgCO2/ha/yr,Chiti_2026,"Lower due to slow decomp"
+# Other practices - Fig 2 Mediterranean
+agroforestry_agb_med,12,MgCO2/ha/yr,Chiti_2026,"High in Mediterranean"
+coppice_high_forest_agb,8,MgCO2/ha/yr,Chiti_2026,"Conversion benefit"
+species_selection_agb,5,MgCO2/ha/yr,Chiti_2026,"Climate-adapted mix"
+longer_rotation_agb,8,MgCO2/ha/yr,Chiti_2026,"Extension 20-40 yrs"
+# SOC rates - smaller magnitude
+species_selection_soc,1,MgCO2/ha/yr,Chiti_2026,"Slow accumulation"
+longer_rotation_soc,0.5,MgCO2/ha/yr,Chiti_2026,"Via litter production"
+# Leakage statement from Chiti et al.
+leakage_harvest_reduction_low,0.60,ratio,Chiti_2026,"Literature synthesis"
+leakage_harvest_reduction_high,1.00,ratio,Chiti_2026,"Upper bound"
+# =============================================================================
+# OFFSET VALUATION - Groom & Venmans (2023) Nature
+# =============================================================================
+discount_rate_central,0.032,annual,Groom_Venmans_2023,"Central case"
+scc_growth_rate,0.01,annual,Groom_Venmans_2023,"x < r always"
+equivalence_50yr_low_risk,0.44,ratio,Groom_Venmans_2023,"RCP2.6, phi=0"
+equivalence_50yr_med_risk,0.39,ratio,Groom_Venmans_2023,"RCP2.6, phi=0.005"
+equivalence_50yr_high_risk,0.34,ratio,Groom_Venmans_2023,"RCP2.6, phi=0.01"
+rule_of_thumb_low,0.33,ratio,Groom_Venmans_2023,"2-3 offsets per ton"
+rule_of_thumb_high,0.50,ratio,Groom_Venmans_2023,"2 offsets per ton"
+additionality_5yr_prob,0.78,probability,Groom_Venmans_2023,"After 5 years"
+additionality_50yr_prob,0.61,probability,Groom_Venmans_2023,"After 50 years"

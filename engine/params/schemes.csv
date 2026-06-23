@@ -1,0 +1,7 @@
+"scheme_id","name","country","buffer_rate","leakage_rate","liability_years","liability_years_min","regional_override","exclude_buffer","exclude_figures","notes"
+"LBC","Label Bas-Carbone","FR",0.15,0.05,30,20,"",FALSE,FALSE,"Risk discount approach; 20-30 yr; 40% BASI additionality penalty if not demonstrated"
+"WCC","Woodland Carbon Code","UK",0.2,0,100,40,"Temperate_UK",FALSE,FALSE,"Pooled buffer; woodland creation only; 40-100 yr crediting period"
+"PLC","Peatland Code","UK",0.2,0,100,30,"",FALSE,FALSE,"Peatland restoration (revegetate and/or rewet); 30 yr min, max peat-depth-bounded (~100 yr)"
+"WKS","Wald-Klima-Standard","DE",0.15,0,30,20,"",FALSE,FALSE,"15% flat permanence buffer; M01 20-30 yr (30 rec.), M02 fixed 30 yr; leakage 0% for modelled M01/M02"
+"KSF","Klimaskovfonden","DK",0.15,0,100,80,"",FALSE,FALSE,"National boundary assumption; afforestation and wetlands"
+"CA_USFP","California USFP","US",0.134,0.2,100,40,"",TRUE,TRUE,"Disaggregated risk-rated buffer (8.7-19.2%, avg 13.4%); IFM dominates issuance"

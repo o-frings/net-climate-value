@@ -1,0 +1,16 @@
+practice,rate,eu_area_ha,duration_yr,harvest_class,source
+Extended rotation,3.5,1500000,20,Harvest-reducing,1.5% of ~100M ha managed forest
+Reduced harvest intensity,1.0,1000000,10,Harvest-reducing,1% of managed forest
+Set-aside,4.5,16000000,30,Harvest-reducing,EU Biodiversity Strategy 10% strict protection
+Coppice conversion,8.0,2000000,30,Harvest-reducing,~2M ha EU coppice eligible
+Continuous stock management,0.45,500000,20,Harvest-reducing,LBC GFSC + similar EU schemes
+Forested peatland rewetting,2.5,2000000,30,Harvest-reducing,Subset of 7.5M ha EU rewetting target
+Species diversification,3.5,5000000,30,Harvest-neutral,5% of managed forest (Waldumbau-type)
+Structural diversification,1.5,3000000,30,Harvest-neutral,3% of managed forest (CCF conversion)
+Fuel management,4.0,5000000,15,Harvest-neutral,~25% of Mediterranean forest (~20M ha)
+Peatland rewetting,3.4,5000000,50,Harvest-neutral,30% of ~25M ha EU drained peatland
+Protected afforestation,8.0,1000000,100,Harvest-neutral,Native woodland creation (WCC-type)
+Reforestation,0.8,1000000,30,Harvest-increasing,[PRELIMINARY] post-disturbance restocking
+Productive afforestation,8.0,1000000,40,Harvest-increasing,Commercial plantation ~1M ha
+Site fertilisation,5.0,500000,10,Harvest-increasing,Nordic drained peatland forestry
+Agroforestry,2.0,1000000,25,Harvest-increasing,EU agroforestry expansion target

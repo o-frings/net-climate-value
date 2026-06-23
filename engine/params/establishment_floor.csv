@@ -1,0 +1,5 @@
+"biome","floor","source"
+"Boreal",0.05,"afforestation establishment-failure literature (planting/frost/browsing, net of beating-up); JRC-decoupled. See 03_parameters.R EST_FLOOR_AFFOREST_BY_BIOME citation block."
+"Temperate",0.07,"union of drought/browsing/planting-failure drivers, central ~7%; JRC-decoupled"
+"Temperate_UK",0.07,"as Temperate"
+"Mediterranean",0.13,"drought-driven dryland establishment failure far higher (SE-Spain 40->94% per-seedling); JRC-decoupled"
