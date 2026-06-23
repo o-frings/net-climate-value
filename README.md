@@ -67,7 +67,7 @@ seeded). Set `ENGINE_MC_ITER=1000` for a quick smoke run.
 | Path | Contents |
 |------|----------|
 | `engine/R/` | The 14 analysis modules + `run_engine.R` (the order is authoritative). |
-| `engine/params/` | The hand-audited parameter CSVs the engine reads (source of truth). Sourcing in `PARAM_SOURCING_AUDIT.md`. |
+| `engine/params/` | The hand-audited parameter CSVs the engine reads (source of truth). Sources documented in `docs/data_provenance.md`. |
 | `engine/output/` | All computed results (CSV/RDS). |
 | `engine/build_scheme_csvs.R` | Rebuilds the scheme parameter CSVs (`schemes`, `scheme_coverage`, `href_values`) from `prep/03_parameters.R`. |
 | `figures/` | `theme.R`, `fig3.R`, `fig_main.R` (fig4/5), `fig_ed.R`, `tables.R`, `run_figures.R`, `sync_to_manuscript.sh`. |
