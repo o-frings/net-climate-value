@@ -117,8 +117,7 @@ the engine.
              Kontoleon, Andreas and B{\"o}ttcher, Hannes and Chiti, Tommaso and
              Rey, Ana and Diaci, Jurij and Lehtonen, Aleksi and Puelzl, Helga and
              Schindlbacher, Andreas and Zavala, Miguel A.},
-  journal = {Nature Climate Change},
   year    = {2026},
-  note    = {Submitted}
+  note    = {Working paper. Submitted for peer review.}
 }
 ```
