@@ -118,6 +118,28 @@ mc_summary <- do.call(rbind, by(all_mc, list(all_mc$practice, all_mc$biome, all_
 rownames(mc_summary) <- NULL
 mc_summary <- mc_summary[order(-mc_summary$mean_share), ]
 
+# --- cross-biome rank robustness (manuscript: Cross-biome transferability) ----
+# Pairwise Spearman of practice MC-median net_share between biome pairs that share
+# >=3 practices. Also reports the number of practice x biome combinations evaluated.
+.cb <- aggregate(p50_share ~ practice + biome, mc_summary, mean)   # collapse species
+.biomes_cb <- sort(unique(.cb$biome))
+.cb_rows <- list()
+for (ii in seq_along(.biomes_cb)) for (jj in seq_along(.biomes_cb)) if (ii < jj) {
+  b1 <- .biomes_cb[ii]; b2 <- .biomes_cb[jj]
+  m <- merge(.cb[.cb$biome == b1, c("practice", "p50_share")],
+             .cb[.cb$biome == b2, c("practice", "p50_share")],
+             by = "practice", suffixes = c("_1", "_2"))
+  if (nrow(m) >= 3)
+    .cb_rows[[length(.cb_rows) + 1]] <- data.frame(
+      biome_1 = b1, biome_2 = b2, n_shared = nrow(m),
+      spearman = cor(m$p50_share_1, m$p50_share_2, method = "spearman"))
+}
+cb_robust <- do.call(rbind, .cb_rows)
+n_combos <- nrow(unique(mc_summary[, c("practice", "biome")]))
+write.csv(cb_robust, "engine/output/rank_robustness_biome.csv", row.names = FALSE)
+cat(sprintf("[07_montecarlo] cross-biome: %d practice x biome combos; pairwise rho %.3f-%.3f over %d biome pairs\n",
+            n_combos, min(cb_robust$spearman), max(cb_robust$spearman), nrow(cb_robust)))
+
 # --- PRCC per practice (partial rank correlation, params vs net_share) --------
 mc_params <- c("k0", "r", "g", "kappa", "lambda_mult", "eps_mult", "U_mult")
 compute_prcc <- function(d) {

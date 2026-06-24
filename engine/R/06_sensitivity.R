@@ -68,6 +68,26 @@ write.csv(leak_range,  "engine/output/leakage_sensitivity_range.csv", row.names 
 cat(sprintf("[06_sensitivity] kappa sweep: %d rows (%d practice-biome ranges)\n",
             nrow(kappa_sweep), nrow(leak_range)))
 
+# --- rank robustness across the kappa range (manuscript: Sensitivity & robustness) ---
+# Spearman rank correlation of practice net_share between the lowest and highest kappa
+# in the sweep (general-equilibrium vs partial-equilibrium leakage). Reported for the
+# 16 headline practices (anchor biome) and for all practice x biome combinations.
+.ks_rank <- function(rows) {
+  d <- aggregate(net_share ~ practice + biome + kappa, rows, mean)   # collapse species
+  klo <- min(d$kappa); khi <- max(d$kappa)
+  m <- merge(d[d$kappa == klo, c("practice", "biome", "net_share")],
+             d[d$kappa == khi, c("practice", "biome", "net_share")],
+             by = c("practice", "biome"), suffixes = c("_lo", "_hi"))
+  list(rho = cor(m$net_share_lo, m$net_share_hi, method = "spearman"), n = nrow(m))
+}
+ra <- .ks_rank(kappa_sweep[kappa_sweep$is_anchor, ])
+rb <- .ks_rank(kappa_sweep)
+write.csv(data.frame(set = c("headline_practices", "all_practice_biome"),
+                     n = c(ra$n, rb$n), spearman_kappa_lo_hi = c(ra$rho, rb$rho)),
+          "engine/output/rank_robustness_kappa.csv", row.names = FALSE)
+cat(sprintf("[06_sensitivity] kappa rank-robustness: %d headline practices rho=%.3f; %d combos rho=%.3f\n",
+            ra$n, ra$rho, rb$n, rb$rho))
+
 # --- x sweep ------------------------------------------------------------------
 # Static x: scale harvest_displacement directly (clamped at 1). Dynamic
 # (afforestation, T_rot_silv set): scale the harvest FRACTION f_h, then x=-f_h/(1-f_h).
