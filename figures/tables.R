@@ -33,7 +33,7 @@ local({
   write_tex(rows,
     header = c("Practice", "Biome", "NCV central (\\%)", "NCV range (\\%)", "Spread (pp)"),
     align = "llrrr",
-    caption = "\\textbf{Leakage intensity sensitivity.} Net climate value across $\\kappa\\in[0.33,1.00]$; central $\\kappa=0.60$.",
+    caption = "\\textbf{Leakage intensity sensitivity.} Net climate value across $\\kappa\\in[0.33,1.27]$; central (mode) $\\kappa=0.60$.",
     label = "tab:leakage_sensitivity", file = "latex_leakage_sensitivity.tex",
     note = "Computed by the engine over the $\\kappa$ sweep (engine/output/leakage\\_sensitivity\\_range.csv).")
 })

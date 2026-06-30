@@ -713,13 +713,20 @@ draw_mc_params <- function(n, ranges = SENSITIVITY_RANGES, seed = 42) {
   # uncertainty because r and g are structurally linked via Ramsey rule r = δ + η·g)
   k0_min <- if (!is.null(ranges$k0)) ranges$k0$min else 0.005
   k0_max <- if (!is.null(ranges$k0)) ranges$k0$max else 0.025
+  # inverse-CDF triangular sampler (base R has no rtriangle); a=min, c=mode, b=max
+  rtri <- function(n, a, c, b) {
+    u <- runif(n); fc <- (c - a) / (b - a)
+    ifelse(u < fc, a + sqrt(u * (b - a) * (c - a)),
+                   b - sqrt((1 - u) * (b - a) * (b - c)))
+  }
+  kappa_mode <- if (!is.null(ranges$kappa$mode)) ranges$kappa$mode else 0.60
   tibble(iteration = 1:n,
          r = runif(n, ranges$r$min, ranges$r$max),
          g = runif(n, ranges$g$min, ranges$g$max),
          eps_mult = runif(n, ranges$eps_mult$min, ranges$eps_mult$max),
          lambda_mult = runif(n, ranges$lambda_mult$min, ranges$lambda_mult$max),
          U_mult = runif(n, ranges$U_mult$min, ranges$U_mult$max),
-         kappa = runif(n, ranges$kappa$min, ranges$kappa$max)) %>%
+         kappa = rtri(n, ranges$kappa$min, kappa_mode, ranges$kappa$max)) %>%
     mutate(k0 = pmin(pmax(r - g, k0_min), k0_max))
 }
 

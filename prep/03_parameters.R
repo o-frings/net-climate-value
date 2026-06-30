@@ -1734,13 +1734,13 @@ SENSITIVITY_RANGES <- list(
   eps_mult   = list(min = 0.70,  max = 1.30),
   lambda_mult = list(min = 0.50, max = 1.50),
   U_mult     = list(min = 0.70,  max = 1.30),
-  kappa      = list(min = 0.33,  max = 1.00)   # carbon/harvest leakage ratio; 0.33 lower bound, 1.0 = full harvest equivalence
+  kappa      = list(min = 0.33,  max = 1.27, mode = 0.60)   # carbon/harvest leakage ratio; triangular MC (mode 0.60 = kappa<1 central tendency, tail to 1.27)
 )
 
 KAPPA_SWEEP <- list(
-  levels = c(0.33, 0.50, 0.60, 0.75, 1.00),
+  levels = c(0.33, 0.50, 0.60, 0.75, 1.00, 1.27),
   labels = c("Low (0.33)", "Moderate (0.50)", "Central (0.60)",
-             "High (0.75)", "Full (1.00)")
+             "High (0.75)", "Full (1.00)", "Tail (1.27)")
 )
 X_SWEEP <- list(
   multipliers = c(0.50, 0.75, 1.00, 1.25, 1.50),

@@ -4,7 +4,10 @@
 # Propagates parameter uncertainty through the engine's deterministic core for
 # every practice x biome x species. Faithful port of analysis/R run_mc_project:
 #   draws  : r,g ~ U; k0 = clamp(r-g, .005,.025); eps_mult,lambda_mult,U_mult ~ U;
-#            kappa ~ U(.33,1.0)   (ranges from engine/params/sensitivity_ranges.csv)
+#            kappa ~ Triangular(min=.33, mode=.60, max=1.27): mode = central carbon/
+#            harvest ratio (kappa<1 is the GTM central tendency, Daigneault 2025), with
+#            a thin upper tail to 1.27 for the protect-low-density / replace-high-density
+#            case (Schulte 2025). min/max from sensitivity_ranges.csv; mode = .const(kappa).
 #   T      : calc_T_k0 with phi_add=0, tau_1=0, H_ref=Inf (the headline benchmark);
 #            tau_2 = H_perm for legally-protected practices
 #   L      : rho_rep perturbed by the elasticity-ratio multiplier eps_mult, scaled
@@ -28,6 +31,13 @@ bbuf      <- read.csv("engine/output/biome_buffer.csv", stringsAsFactors = FALSE
 U50_by_biome <- setNames(.bd$U_50, .bd$biome)   # central climate uplift per biome
 .sr       <- read.csv("engine/params/sensitivity_ranges.csv", stringsAsFactors = FALSE)
 rng <- function(p) { r <- .sr[.sr$param == p, ]; if (nrow(r) != 1) stop("range missing: ", p); c(r$min, r$max) }
+# inverse-CDF triangular sampler (base R has no rtriangle); a=min, c=mode, b=max
+rtri <- function(n, a, c, b) {
+  u  <- runif(n)
+  fc <- (c - a) / (b - a)
+  ifelse(u < fc, a + sqrt(u * (b - a) * (c - a)),
+                 b - sqrt((1 - u) * (b - a) * (b - c)))
+}
 H_perm    <- .const("H_perm"); tau_1 <- .const("tau_1"); ell_max <- .const("ell_max")
 
 hkey <- function(p, b, s) paste(p, b, s, sep = "\r")
@@ -58,7 +68,7 @@ mc_one <- function(i) {
   eps_mult <- runif(n, rng("eps_mult")[1], rng("eps_mult")[2])
   lambda_mult <- runif(n, rng("lambda_mult")[1], rng("lambda_mult")[2])
   U_mult <- runif(n, rng("U_mult")[1], rng("U_mult")[2])
-  kappa <- runif(n, rng("kappa")[1], rng("kappa")[2])
+  kappa <- rtri(n, rng("kappa")[1], .const("kappa"), rng("kappa")[2])
   k0 <- pmin(pmax(r - g, rng("k0")[1]), rng("k0")[2])
 
   protected <- isTRUE(as.logical(row$legally_protected))

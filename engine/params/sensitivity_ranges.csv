@@ -5,4 +5,4 @@ k0,0.005,0.025,Ramsey-consistent clamp on r-g
 eps_mult,0.70,1.30,elasticity-ratio multiplier on rho_rep
 lambda_mult,0.50,1.50,disturbance-rate multiplier
 U_mult,0.70,1.30,climate-uplift multiplier
-kappa,0.33,1.00,carbon/harvest leakage ratio (MC draw range)
+kappa,0.33,1.27,carbon/harvest leakage ratio (triangular MC: min/max here, mode = model_constants kappa = 0.60)
