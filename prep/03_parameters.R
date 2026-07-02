@@ -493,7 +493,7 @@ LEAKAGE_PARAMS <- list(
     `Reduced harvest intensity`   = list(SL = 0.20, PW = 0.60, WF = 0.20),
     `Coppice conversion`          = list(SL = 0.60, PW = 0.30, WF = 0.10),
     `Reforestation`               = list(SL = 0.50, PW = 0.30, WF = 0.20),
-    `Continuous stock management`  = list(SL = 0.55, PW = 0.35, WF = 0.10),
+    `Continuous cover forestry`  = list(SL = 0.55, PW = 0.35, WF = 0.10),
     `Forested peatland rewetting` = list(SL = 0.20, PW = 0.70, WF = 0.10),
     # Harvest-neutral
     `Structural diversification`  = list(SL = 0.40, PW = 0.40, WF = 0.20),
@@ -652,7 +652,7 @@ if (!is.null(.chiti_t1))
 # Practice × biome → Table 1 filter spec.
 # Practices missing from this list stay hardcoded (Chiti Table 1 has no
 # matching category: Reforestation, Species/Structural diversification,
-# Fuel management, Set-aside, Continuous stock management, Coppice conversion).
+# Fuel management, Set-aside, Continuous cover forestry, Coppice conversion).
 CHITI_MAP <- list(
   # Afforestation (Protected = native broadleaves; Productive = plantation conifers/eucalyptus)
   list(practice = "Protected afforestation",  biome = "Temperate",
@@ -826,10 +826,10 @@ ALL_PROJECTS <- tibble::tribble(
   "Coppice conversion", "Temperate",     "Chestnut/oak", 8.0, 11, 30, 140, TRUE,
   "Coppice conversion", "Mediterranean", "Holm oak",     8.0, 11, 30,  70, FALSE,
 
-  # Continuous stock management: Eyvindson 2021 + LBC GFSC methodology
+  # Continuous cover forestry: Eyvindson 2021 + LBC GFSC methodology
   #   10-20% harvest reduction; Hilmers 2020 Table 4 supports ~0.3-0.5 range
-  "Continuous stock management", "Boreal",    "Mixed conifers",    0.30, 11, 30, 120, FALSE,
-  "Continuous stock management", "Temperate", "Mixed broadleaves", 0.45, 11, 30, 250, TRUE,  # continuous cover ≈ biome mean; selective harvest keeps stock high
+  "Continuous cover forestry", "Boreal",    "Mixed conifers",    0.30, 11, 30, 120, FALSE,
+  "Continuous cover forestry", "Temperate", "Mixed broadleaves", 0.45, 11, 30, 250, TRUE,  # continuous cover ≈ biome mean; selective harvest keeps stock high
 
   # Forested peatland rewetting Temp: Mander et al. 2025 (New Phytol 246:94-102)
   #   natural peatlands 0.04-3.67 MgCO2/ha/yr; 2.0 upper-mid range
@@ -900,9 +900,9 @@ ALL_PROJECTS <- tibble::tribble(
   # "Bannwald"). Hilmers 2020 Table 4: spruce set-aside 2.5-3.5 MgCO2/yr.
   "Set-aside", "Temperate", "Norway spruce", 3.0, 100, 30, 200, TRUE,
 
-  # Continuous stock management — conifer variant (CCF in Sitka/Norway
+  # Continuous cover forestry — conifer variant (CCF in Sitka/Norway
   # spruce). Hilmers 2020: continuous-cover spruce 0.25-0.35 MgCO2/yr.
-  "Continuous stock management", "Temperate", "Mixed conifers", 0.30, 11, 30, 180, TRUE,
+  "Continuous cover forestry", "Temperate", "Mixed conifers", 0.30, 11, 30, 180, TRUE,
 
   # Protected afforestation — conifer variant (Caledonian-style native
   # pinewood; Forestry Commission Scotland Caledonian Forest Reserve
@@ -967,8 +967,8 @@ rm(.na_rates)
   "Reforestation|Mediterranean"                 = "Heuristic: ~10% of Productive afforestation rate",
   "Coppice conversion|Temperate"                = "Chiti et al. 2026 text: ~8 MgCO2/ha/yr coppice-to-high-forest",
   "Coppice conversion|Mediterranean"            = "Chiti et al. 2026 text: ~8 MgCO2/ha/yr coppice-to-high-forest",
-  "Continuous stock management|Boreal"          = "LBC GFSC: 10-20% harvest reduction estimate",
-  "Continuous stock management|Temperate"       = "LBC GFSC: 10-20% harvest reduction estimate",
+  "Continuous cover forestry|Boreal"          = "LBC GFSC: 10-20% harvest reduction estimate",
+  "Continuous cover forestry|Temperate"       = "LBC GFSC: 10-20% harvest reduction estimate",
   "Forested peatland rewetting|Temperate"       = "Mander et al. 2025 (New Phytol 246:94-102): natural peatland sink mid-range",
   "Species diversification|Boreal"              = "Pretzsch & Schuetze 2021 (Ann Bot 128:767-786): 30% mixing uplift",
   "Species diversification|Temperate"           = "Pretzsch & Schuetze 2021 (Ann Bot 128:767-786): 30% mixing uplift",
@@ -989,7 +989,7 @@ rm(.na_rates)
   "Extended rotation|Temperate|Beech/oak"          = "Pretzsch & Schutze 2009 (Ann Bot 100): beech extended-rotation productivity uplift",
   "Reduced harvest intensity|Temperate|Mixed broadleaves" = "Holscher 2014 (For Ecol Manage 326): beech RHI retention",
   "Set-aside|Temperate|Norway spruce"              = "Hilmers 2020 (EJFR 139, Table 4): spruce set-aside differential",
-  "Continuous stock management|Temperate|Mixed conifers"  = "Hilmers 2020 (EJFR 139, Table 4): CCF spruce/Norway differential",
+  "Continuous cover forestry|Temperate|Mixed conifers"  = "Hilmers 2020 (EJFR 139, Table 4): CCF spruce/Norway differential",
   "Protected afforestation|Temperate|Native pinewood"     = "Forestry Commission Scotland Caledonian Forest natural regen 4-6 MgCO2/yr",
   "Productive afforestation|Temperate|Productive oak/beech" = "Chiti afforestation cropland type A (broadleaves) ~7 MgCO2/yr",
   "Reforestation|Temperate|Mixed conifers"         = "Heuristic: post-disturbance CF restocking, mirrors Boreal Reforestation"
@@ -1085,7 +1085,7 @@ HARVEST_CLASSES <- list(
   `Extended rotation`          = "Harvest-reducing",
   `Reduced harvest intensity`  = "Harvest-reducing",
   `Coppice conversion`         = "Harvest-reducing",
-  `Continuous stock management`= "Harvest-reducing",
+  `Continuous cover forestry`= "Harvest-reducing",
   `Forested peatland rewetting`= "Harvest-reducing",
   `Reforestation`              = "Harvest-increasing",
   `Structural diversification` = "Harvest-neutral",
@@ -1116,7 +1116,7 @@ CRCF_BASE_PRACTICES <- tibble::tribble(
   "Reduced harvest intensity",  1.0,  1000000, 10, "1% of managed forest",
   "Set-aside",                  4.5, 16000000, 30, "EU Biodiversity Strategy 10% strict protection",
   "Coppice conversion",         8.0,  2000000, 30, "~2M ha EU coppice eligible",
-  "Continuous stock management", 0.45,  500000, 20, "LBC GFSC + similar EU schemes",
+  "Continuous cover forestry", 0.45,  500000, 20, "LBC GFSC + similar EU schemes",
   "Forested peatland rewetting", 2.5,  2000000, 30, "Subset of 7.5M ha EU rewetting target",
 
   # Harvest-neutral: diversification, fire, peatland, protected afforestation
@@ -1296,11 +1296,11 @@ PRACTICE_DEFS <- tibble::tribble(
   "CoppiceConversion", "Coppice conversion",
   0.40, "SL", 0, 1.05, 1.00, 1.00,
 
-  # Continuous stock management: LBC GFSC; maintains 80-90% of harvestable volume.
+  # Continuous cover forestry: LBC GFSC; maintains 80-90% of harvestable volume.
   #   x=0.90: conservative — same as other harvest-reducing practices.
   #   Evidence for carrying-capacity gains from vertical layering is
   #   insufficient to justify a lower x (Laiho et al. 2011, Forestry).
-  "ContinuousStockManagement", "Continuous stock management",
+  "ContinuousStockManagement", "Continuous cover forestry",
   0.90, "SL", 0, 0.95, 0.95, 0.95,
 
   # Forested peatland rewetting: timber harvest ceases when peatland is rewetted.
@@ -1526,7 +1526,7 @@ SCHEME_PARAMS <- list(
       "Productive afforestation",        # Boisement: 60% monoculture plots (WWF 2021), avg 5 species
       "Reforestation",                   # Reconstitution (degraded stand restocking)
       "Coppice conversion",              # Balivage (taillis → futaie sur souches) [4 projects, 2.3 ktCO2e]
-      "Continuous stock management"      # GFSC (maintain 80-90% harvestable volume) [newer method]
+      "Continuous cover forestry"      # GFSC (maintain 80-90% harvestable volume) [newer method]
     ),
     # Cross-practice credit-share weights (I4CE / Observatoire de la forêt
     # & resoilag bilan LBC 2023):
@@ -1538,7 +1538,7 @@ SCHEME_PARAMS <- list(
       "Productive afforestation"   = 0.44,
       "Reforestation"              = 0.56,
       "Coppice conversion"         = 0.00,
-      "Continuous stock management" = 0.00
+      "Continuous cover forestry" = 0.00
     ),
     # Forest-type weights within each covered practice. Boisement projects
     # are CF-dominated (WWF 2021 noted 60% monoculture plots, primarily
@@ -1550,7 +1550,7 @@ SCHEME_PARAMS <- list(
       "Productive afforestation"  = c(broadleaf = 0.30, conifer = 0.70),
       "Reforestation"             = c(broadleaf = 0.30, conifer = 0.70),
       "Coppice conversion"        = c(broadleaf = 1.00, conifer = 0.00),
-      "Continuous stock management" = c(broadleaf = 0.67, conifer = 0.33)
+      "Continuous cover forestry" = c(broadleaf = 0.67, conifer = 0.33)
     )
   ),
   

@@ -22,7 +22,7 @@ SECONDARY_BLCF_VARIANTS <- list(
   c("Extended rotation",           "Beech/oak"),
   c("Reduced harvest intensity",   "Mixed broadleaves"),
   c("Set-aside",                   "Norway spruce"),
-  c("Continuous stock management", "Mixed conifers"),
+  c("Continuous cover forestry", "Mixed conifers"),
   c("Reforestation",               "Mixed conifers"))
 
 forest_type_from_species <- function(species) {

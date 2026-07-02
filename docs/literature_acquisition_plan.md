@@ -44,8 +44,8 @@ For each row below, open the PDF, find the specific table/figure with the rate, 
 |---|---|---|
 | Reduced harvest intensity Boreal/Temp | Pretzsch & Hilmers 2023 | Temperate Picea thinning intensity × AGB differential (verify 1.0 MgCO2 range) |
 | Set-aside Temperate | Chiti et al. 2026 | "Management vs no-intervention" Temperate (n=5) supplementary aggregate |
-| Continuous stock management Boreal | Eyvindson et al. 2021 | Finnish CCF vs BAU differential over rotation |
-| Continuous stock management Temperate | Hilmers et al. 2020 | Net additional C from Norway-spruce-to-mixed transformation |
+| Continuous cover forestry Boreal | Eyvindson et al. 2021 | Finnish CCF vs BAU differential over rotation |
+| Continuous cover forestry Temperate | Hilmers et al. 2020 | Net additional C from Norway-spruce-to-mixed transformation |
 | Structural diversification Boreal | Mohr et al. 2024 | Austrian CCF productivity vs even-aged |
 | Structural diversification Temperate | Hilmers et al. 2020 | Bavarian mountain transformation scenarios |
 | Structural diversification Mediterranean | Pretzsch & Hilmers 2023 | Structural diversity × C stock trade-off |

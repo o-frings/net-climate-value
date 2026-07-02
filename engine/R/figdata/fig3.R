@@ -19,7 +19,7 @@ local({
     "Reduced harvest intensity" = "Harvest-reducing",
     "Forested peatland rewetting" = "Harvest-reducing",
     "Coppice conversion" = "Harvest-reducing",
-    "Continuous stock management" = "Harvest-reducing",
+    "Continuous cover forestry" = "Harvest-reducing",
     "Structural diversification" = "Harvest-neutral",
     "Species diversification" = "Harvest-neutral",
     "Fuel management" = "Harvest-neutral", "Peatland rewetting" = "Harvest-neutral",

@@ -34,7 +34,11 @@ local({
       p5_area   = area_p5,
       p25_area  = area_p25,
       p75_area  = area_p75,
-      p95_area  = area_p95
+      p95_area  = area_p95,
+      # Booked (face-value) area: land whose GROSS sequestration equals the
+      # target, i.e. what a 1-credit-per-verified-tonne scheme would claim.
+      # The gap to med_area (NCV-adjusted) is the over-crediting, in land terms.
+      booked_area = gross_area_Mha
     )
 
   # Order by MC median (highest median -> y_num 1). FIX vs the legacy figure: the

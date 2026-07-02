@@ -36,6 +36,9 @@ local({
     # EU forest reference lines (vertical)
     geom_vline(xintercept = 135, linetype = "dashed", colour = "#888888", linewidth = 0.4) +
     geom_vline(xintercept = 160, linetype = "dashed", colour = "#888888", linewidth = 0.4) +
+    # Over-crediting connector: booked (face-value) area -> genuine (NCV-adj.) box
+    geom_segment(aes(x = booked_area, xend = p25_area, y = y_num, yend = y_num),
+                 colour = "#C8C8C8", linewidth = 0.3, linetype = "dotted") +
     # Whiskers: p5-p95 with end caps
     geom_segment(aes(x = p5_area, xend = p95_area, y = y_num, yend = y_num),
                  colour = "#999999", linewidth = 0.35) +
@@ -58,6 +61,11 @@ local({
     # Mean dot
     geom_point(aes(x = mean_area), shape = 21, size = 1.5,
                fill = "#333333", colour = "white", stroke = 0.4) +
+    # Booked (face-value) area: grey diamond + value label to its left
+    geom_point(aes(x = booked_area), shape = 23, size = 1.7,
+               fill = "#7F7F7F", colour = "white", stroke = 0.35) +
+    geom_text(aes(x = booked_area, label = sprintf("%.0f", booked_area)),
+              size = 1.6, hjust = 1.3, colour = "#7F7F7F") +
     # Right-side label: median [p5, p95]
     geom_text(aes(x = pmax(p95_area, mean_area) + 5,
                   label = sprintf("%.0f  [%.0f, %.0f]", med_area, p5_area, p95_area)),
@@ -76,7 +84,7 @@ local({
                        labels = area_stats$axis_label,
                        expand = expansion(add = c(0.5, 0.8))) +
     coord_cartesian(clip = "off") +
-    labs(y = NULL, x = "NCV-adj. area (Mha)") +
+    labs(y = NULL, x = "Forest area required (Mha): booked (grey) vs genuine (box)") +
     theme_nature(base_size = 9) +
     theme(
       panel.grid.major.y = element_blank(),
