@@ -40,8 +40,13 @@ local({
                 delta_temp = median(delta_temp), delta_buf = median(delta_buf),
                 .groups = "drop") %>%
       filter(!is_secondary_variant(practice, species)) %>%
-      mutate(delta_leak = pmax(delta_leak, 0),
-             net_share = 1 - delta_temp - delta_leak - delta_buf,
+      # delta_leak is SIGNED: >0 for harvest-reducing (a deduction), <0 for
+      # supply-positive practices that add timber supply (negative leakage, a
+      # value gain). Keep the sign so the decomposition shows it; split into a
+      # left-side deduction (leak_ded) and a right-side value gain (leak_gain).
+      mutate(net_share = 1 - delta_temp - delta_leak - delta_buf,
+             leak_ded  = pmax(delta_leak, 0),
+             leak_gain = pmax(-delta_leak, 0),
              bar_label = practice_full_label(practice, species, biome)) %>%
       arrange(desc(net_share)) %>%
       mutate(bar_label = factor(bar_label, levels = rev(bar_label)))
@@ -53,11 +58,15 @@ local({
   pbm <- pbm %>% mutate(ord = rev(seq_len(n())))
 
   ded_long_v2 <- pbm %>%
-    select(ptype, bar_label, ord, Leakage = delta_leak, Time = delta_temp, Buffer = delta_buf) %>%
+    select(ptype, bar_label, ord, Leakage = leak_ded, Time = delta_temp, Buffer = delta_buf) %>%
     pivot_longer(c(Leakage, Time, Buffer), names_to = "component", values_to = "share") %>%
     mutate(component_ord = match(component, c("Buffer", "Time", "Leakage")))
 
+  # net_share already includes any negative-leakage gain; leak_gain marks the
+  # right-hand slice of the net bar attributable to negative leakage (gain_start
+  # = its left edge), so the drawer can highlight it. leak_gain = 0 elsewhere.
   net_bar_v2 <- pbm %>% transmute(ptype, bar_label, ord, net_share,
+                                  leak_gain, gain_start = net_share - leak_gain,
                                   label = sprintf("%.0f%%", net_share * 100),
                                   label_y = net_share / 2)
 

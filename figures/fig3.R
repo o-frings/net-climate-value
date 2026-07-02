@@ -38,6 +38,13 @@ local({
              width = 0.65, colour = NA) +
     scale_fill_gradient2(low = "#C0392B", mid = "#E8D5C4", high = "#BDD7EE",
                          midpoint = 0.30, guide = "none") +
+    # negative-leakage gain: right-hand slice of the net bar from supply-positive
+    # practices adding timber supply (leak_gain > 0), in the Leakage colour so it
+    # reads as leakage returning value rather than deducting it.
+    geom_rect(data = subset(net_bar_v2, leak_gain > 0),
+              aes(xmin = as.integer(bar_label) - 0.325, xmax = as.integer(bar_label) + 0.325,
+                  ymin = gain_start, ymax = net_share),
+              fill = "#606060", inherit.aes = FALSE) +
     geom_text(data = net_bar_v2, aes(x = bar_label, y = label_y, label = label),
               size = 2.4, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +
