@@ -38,7 +38,7 @@ local({
     geom_vline(xintercept = 160, linetype = "dashed", colour = "#888888", linewidth = 0.4) +
     # Over-crediting connector: booked (face-value) area -> genuine (NCV-adj.) box
     geom_segment(aes(x = booked_area, xend = p25_area, y = y_num, yend = y_num),
-                 colour = "#CFCFCF", linewidth = 0.4) +
+                 colour = "#B7A4D4", linewidth = 0.4) +
     # Whiskers: p5-p95 with end caps
     geom_segment(aes(x = p5_area, xend = p95_area, y = y_num, yend = y_num),
                  colour = "#999999", linewidth = 0.35) +
@@ -61,12 +61,12 @@ local({
     # Mean dot
     geom_point(aes(x = mean_area), shape = 21, size = 1.5,
                fill = "#333333", colour = "white", stroke = 0.4) +
-    # Booked (face-value) area: grey diamond marker
+    # Booked (face-value) area: purple diamond marker (distinct from palette/greys)
     geom_point(aes(x = booked_area), shape = 23, size = 1.8,
-               fill = "#7F7F7F", colour = "white", stroke = 0.35) +
+               fill = "#5E3C99", colour = "white", stroke = 0.35) +
     # Compact legend (top-right empty region): booked diamond vs genuine box
     annotate("point", x = 250, y = max(area_stats$y_num) + 0.20, shape = 23,
-             size = 1.8, fill = "#7F7F7F", colour = "white", stroke = 0.35) +
+             size = 1.8, fill = "#5E3C99", colour = "white", stroke = 0.35) +
     annotate("text", x = 260, y = max(area_stats$y_num) + 0.20,
              label = "booked (face value)", hjust = 0, size = 2.0, colour = "#555555") +
     annotate("point", x = 250, y = max(area_stats$y_num) - 0.35, shape = 22,
