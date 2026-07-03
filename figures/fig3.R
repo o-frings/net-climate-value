@@ -44,7 +44,7 @@ local({
     geom_rect(data = subset(net_bar_v2, leak_gain > 0),
               aes(xmin = as.integer(bar_label) - 0.325, xmax = as.integer(bar_label) + 0.325,
                   ymin = 0, ymax = leak_gain),
-              fill = "#606060", inherit.aes = FALSE) +
+              fill = "#808080", inherit.aes = FALSE) +
     geom_text(data = net_bar_v2, aes(x = bar_label, y = label_y, label = label),
               size = 2.4, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +
