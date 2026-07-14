@@ -52,22 +52,54 @@ biome_buffer_table <- do.call(rbind, lapply(sort(unique(zone$biome)), function(b
 write.csv(biome_buffer_table, "engine/output/biome_buffer.csv", row.names = FALSE)
 
 # --- per-practice net_share ---------------------------------------------------
+# The buffer b now applies the practice-specific vulnerability multipliers
+# (R_mult, lambda_mult, c_mult; practices.csv / manuscript Supp Table mgmt) on top
+# of the biome base, via the empirical TVaR99 bootstrap (practice_buffer_rate, 03).
+# The unmultiplied biome_buffer table above stays the biome-mean reference.
+H_buf <- function(protected) if (protected) H_perm else 40
 headline <- do.call(rbind, lapply(seq_len(nrow(practices)), function(i) {
   row <- practices[i, ]
   protected <- isTRUE(as.logical(row$legally_protected))
   x  <- resolve_x(row)                                   # 02_model.R
   L  <- leakage_L(row$practice, row$biome, x)            # 02_model.R
   T  <- temporality_T(tau_2_temporality(row))            # 02_model.R
-  hcol <- if (protected) "b_TVaR99_H100" else "b_TVaR99_H40"
-  b  <- biome_buffer(row$biome, row$forest_type, hcol)  # JRC-scope mature-disturbance buffer (no establishment floor)
+  pb <- practice_buffer_rate(row$biome, row$forest_type, H_buf(protected),
+                             row$R_mult, row$lambda_mult, row$c_mult)  # 03_buffer.R
+  b  <- pb$b
   data.frame(practice = row$practice, biome = row$biome, species = row$species,
              is_anchor = as.logical(row$is_anchor),
-             x = x, L = L, T = T, b = b,
+             x = x, L = L, T = T, b = b, b_se = pb$se,
              net_share = net_share(L, T, b), stringsAsFactors = FALSE)
 }))
 rownames(headline) <- NULL
 
 write.csv(headline, "engine/output/clean_headline.csv", row.names = FALSE)
+
+# --- practice-level buffer table + range (present-day + end-of-century RCP8.5) --
+# Each practice x biome x forest_type at its horizon, buffer at present-day climate
+# and at sustained end-of-century RCP8.5 uplift. Feeds the ED practice-spread figure
+# and the manuscript's "b in [lo, hi] across practice-biome-climate" range.
+u100_85 <- setNames(biome_data$U_100_rcp85, biome_data$biome)   # biome_data from 01_data.R
+combos  <- unique(practices[, c("practice", "biome", "forest_type",
+                                "R_mult", "lambda_mult", "c_mult", "legally_protected")])
+practice_buffer <- do.call(rbind, lapply(seq_len(nrow(combos)), function(i) {
+  cc <- combos[i, ]; H <- H_buf(isTRUE(as.logical(cc$legally_protected)))
+  pres <- practice_buffer_rate(cc$biome, cc$forest_type, H, cc$R_mult, cc$lambda_mult, cc$c_mult)
+  Uend <- u100_85[[cc$biome]]
+  endc <- if (is.null(Uend) || is.na(Uend)) NA_real_ else
+    practice_buffer_rate(cc$biome, cc$forest_type, H, cc$R_mult, cc$lambda_mult, cc$c_mult,
+                         uplift_vec = rep(Uend, H))$b
+  data.frame(practice = cc$practice, biome = cc$biome, forest_type = cc$forest_type,
+             H = H, R_mult = cc$R_mult, lambda_mult = cc$lambda_mult, c_mult = cc$c_mult,
+             b_present = pres$b, se_present = pres$se, b_rcp85_2100 = endc,
+             stringsAsFactors = FALSE)
+}))
+rownames(practice_buffer) <- NULL
+write.csv(practice_buffer, "engine/output/practice_buffer.csv", row.names = FALSE)
+b_all  <- c(practice_buffer$b_present, practice_buffer$b_rcp85_2100)
+rng_lo <- min(b_all, na.rm = TRUE); rng_hi <- max(b_all, na.rm = TRUE)
+cat(sprintf("[04_headline] practice buffer range b in [%.2f, %.2f] across %d practice-biome combos x {present, RCP8.5-2100}\n",
+            rng_lo, rng_hi, nrow(combos)))
 anc <- headline[headline$is_anchor, ]
 cat(sprintf("[04_headline] OK — %d rows (%d anchors). Anchor net_share: %.1f%%-%.1f%% (mean %.1f%%)\n",
             nrow(headline), nrow(anc), 100*min(anc$net_share), 100*max(anc$net_share),

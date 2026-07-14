@@ -153,6 +153,10 @@ H_default <- 40
 H_perm    <- .k("H_perm")
 countries <- intersect(names(sev_by_country), names(U50_by_country))
 
+# Per-country natural-disturbance series, kept so the practice-level buffer helper
+# (practice_buffer_rate, below) can re-bootstrap with practice-specific multipliers.
+series_by_country <- list()
+
 clean_buffer <- do.call(rbind, lapply(files, function(f) {
   ann  <- as.data.frame(readRDS(f))
   fkey <- unique(ann$country)
@@ -163,6 +167,7 @@ clean_buffer <- do.call(rbind, lapply(files, function(f) {
   cc <- c_by_biome[[bm]]
   if (is.null(cc) || is.na(cc)) stop("no correlation c for biome ", bm)
   series <- ann$lambda_natural[ann$year >= 1986]
+  series_by_country[[cn]] <<- series
   sev <- sev_by_country[[cn]]; U50 <- U50_by_country[[cn]]
   if (is.na(sev) || is.na(U50)) stop("missing severity/U_50 for ", cn)
   do.call(rbind, lapply(c("broadleaf", "conifer"), function(ft) {
@@ -180,3 +185,54 @@ dir.create("engine/output", showWarnings = FALSE, recursive = TRUE)
 write.csv(clean_buffer, "engine/output/clean_buffer_rates.csv", row.names = FALSE)
 cat(sprintf("[03_buffer] OK — %d country x forest-type rows (corr-limited N_eff=1/c, n_mc=%d, seed=%d)\n",
             nrow(clean_buffer), BUF_N_MC, BUF_SEED))
+
+# =============================================================================
+# practice_buffer_rate() — practice-level empirical TVaR99 buffer
+# =============================================================================
+# Applies the practice-specific risk multipliers (R_mult, lambda_mult, c_mult;
+# practices.csv / manuscript Supp Table mgmt) on top of the biome base parameters,
+# then re-runs the SAME empirical TVaR99 bootstrap as the biome buffer above:
+#   R_mult      scales species/structural vulnerability  -> R = R_of(biome,ft)*R_mult
+#   lambda_mult scales event frequency                   -> series * lambda_mult
+#   c_mult      scales the spatial-correlation loading   -> c = c_biome*c_mult
+# Because R_mult and lambda_mult both scale the per-year disturbed fraction mu
+# multiplicatively, and c_mult only re-sizes N_eff=round(1/c) and the Beta pooling,
+# the practice buffer is the biome bootstrap evaluated at the practice's hazard.
+# Result is the forest-area-weighted mean over the biome's EFDA zones (matching
+# biome_buffer() in 04). Cached by argument signature; deterministic per key.
+PRACTICE_BUF_N_MC <- 8000L    # per-country depth (interp-free; batch SE reported)
+.pbuf_cache <- new.env(parent = emptyenv())
+
+# whole-country buffer with practice multipliers folded in (dominant-biome base)
+.country_buf_mult <- function(cn, ft, H, R_mult, lambda_mult, c_mult, uplift_vec, n_mc) {
+  bm  <- dom_biome[[cn]]
+  R   <- R_of(bm, ft) * R_mult
+  cc  <- c_by_biome[[bm]] * c_mult
+  ser <- series_by_country[[cn]] * lambda_mult          # lambda_mult scales the rate
+  bootstrap_buffer(ser, sev_by_country[[cn]], U50_by_country[[cn]], R, cc, H,
+                   n_mc = n_mc, uplift_vec = uplift_vec)
+}
+
+# forest-area-weighted practice buffer for a biome x forest_type at horizon H.
+# uplift_vec = NULL -> headline ramp (0.05 -> U_50); pass rep(U_end, H) for a
+# sustained climate level (e.g. end-of-century RCP8.5, for the buffer-range report).
+practice_buffer_rate <- function(biome, ft, H, R_mult = 1, lambda_mult = 1, c_mult = 1,
+                                 uplift_vec = NULL, n_mc = PRACTICE_BUF_N_MC) {
+  key <- paste("pb", biome, ft, H, R_mult, lambda_mult, c_mult,
+               if (is.null(uplift_vec)) "ramp" else paste0("flat", round(uplift_vec[1], 5)),
+               n_mc, sep = "|")
+  if (!is.null(.pbuf_cache[[key]])) return(.pbuf_cache[[key]])
+  zb <- efda_sum[efda_sum$biome == biome & !is.na(efda_sum$forest_kha) &
+                 efda_sum$forest_kha > 0, c("country_root", "forest_kha")]
+  zb <- aggregate(forest_kha ~ country_root, zb, sum)
+  zb <- zb[zb$country_root %in% names(series_by_country), ]
+  if (nrow(zb) == 0) stop("practice_buffer_rate: no EFDA countries for biome ", biome)
+  set.seed(2026L + (sum(utf8ToInt(key)) %% 100000L))     # reproducible per signature
+  bs <- lapply(zb$country_root, .country_buf_mult, ft = ft, H = H, R_mult = R_mult,
+               lambda_mult = lambda_mult, c_mult = c_mult, uplift_vec = uplift_vec, n_mc = n_mc)
+  w  <- zb$forest_kha / sum(zb$forest_kha)
+  res <- list(b  = sum(w * vapply(bs, function(x) x$b,  numeric(1))),
+              se = sum(w * vapply(bs, function(x) x$se, numeric(1))))
+  .pbuf_cache[[key]] <- res
+  res
+}

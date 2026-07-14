@@ -10,13 +10,16 @@
 #            case (Schulte 2025). min/max from sensitivity_ranges.csv; mode = .const(kappa).
 #   T      : calc_T_k0 with phi_add=0, tau_1=0, H_ref=Inf (the headline benchmark);
 #            tau_2 = H_perm for legally-protected practices
-#   L      : rho_rep perturbed by the elasticity-ratio multiplier eps_mult, scaled
-#            by kappa and harvest displacement x; clipped to [-ell_max, 1] (x<=0 cap)
-#   b      : drawn ~ N(b_central, b_se), b_central = headline buffer (floored),
-#            b_se = biome batch-means SE (engine/output/biome_buffer.csv)
+#   L      : rho_rep scaled by kappa and harvest displacement x, clipped to
+#            [-ell_max, 1] (x<=0 cap). The uniform elasticity multiplier eps_mult
+#            cancels in the rho^rep ratio (applied to numerator AND |eps_d|), so
+#            leakage uncertainty enters through kappa alone (manuscript Methods).
+#   b      : b_central * hazard_scale + N(0, b_se), with b_central = the headline
+#            PRACTICE buffer (practice_buffer_rate, 03/04; applies R_mult/lambda_mult/
+#            c_mult) and b_se its batch-means SE. hazard_scale = lambda_mult *
+#            (1+U50*U_mult)/(1+U50) makes the buffer respond to the disturbance-rate
+#            and climate-uplift draws (=1 at central params).
 #   net_share = (1-L)(1-T)(1-b)   per iteration
-# net_share does NOT depend on lambda_mult/U_mult (buffer is drawn, not recomputed
-# from lambda) — identical to run_mc_project; those draws are kept for PRCC only.
 # Seed = 42 + practice-row index (independent reproducible stream per practice).
 # Assumes 02_model.R (rho parts, calc_x_afforestation, net_share) and 04_headline.R
 # (clean_headline.csv, biome_buffer.csv) have run.
@@ -24,16 +27,26 @@
 cat("[07_montecarlo] Monte Carlo uncertainty + PRCC...\n")
 N_MC_ITER <- if (nzchar(Sys.getenv("ENGINE_MC_ITER"))) as.integer(Sys.getenv("ENGINE_MC_ITER")) else 10000L
 
+# Gaussian-copula correlation between the leakage driver (kappa) and the reversal
+# driver (lambda_mult). 0 = the independence baseline the manuscript headline uses;
+# the SI sensitivity sweep sets it via MC_LEAK_REV_RHO. Invalid input fails loudly.
+LEAK_REV_RHO <- local({
+  x <- suppressWarnings(as.numeric(Sys.getenv("MC_LEAK_REV_RHO", unset = "0")))
+  if (!is.finite(x) || abs(x) > 0.95) stop("MC_LEAK_REV_RHO must be finite in [-0.95, 0.95]")
+  x
+})
+# Canonical outputs describe the baseline only; off-baseline sweeps do not overwrite them.
+WRITE_CANONICAL <- LEAK_REV_RHO == 0
+
 practices <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
 headline  <- read.csv("engine/output/clean_headline.csv", stringsAsFactors = FALSE)
-bbuf      <- read.csv("engine/output/biome_buffer.csv", stringsAsFactors = FALSE)
 .bd       <- read.csv("engine/output/derived_biome_params.csv", stringsAsFactors = FALSE)
 U50_by_biome <- setNames(.bd$U_50, .bd$biome)   # central climate uplift per biome
 .sr       <- read.csv("engine/params/sensitivity_ranges.csv", stringsAsFactors = FALSE)
 rng <- function(p) { r <- .sr[.sr$param == p, ]; if (nrow(r) != 1) stop("range missing: ", p); c(r$min, r$max) }
-# inverse-CDF triangular sampler (base R has no rtriangle); a=min, c=mode, b=max
-rtri <- function(n, a, c, b) {
-  u  <- runif(n)
+# inverse-CDF triangular transform of uniforms u (base R has no rtriangle);
+# a=min, c=mode, b=max. Takes u so the copula can supply correlated uniforms.
+rtri <- function(u, a, c, b) {
   fc <- (c - a) / (b - a)
   ifelse(u < fc, a + sqrt(u * (b - a) * (c - a)),
                  b - sqrt((1 - u) * (b - a) * (b - c)))
@@ -41,7 +54,8 @@ rtri <- function(n, a, c, b) {
 H_perm    <- .const("H_perm"); tau_1 <- .const("tau_1"); ell_max <- .const("ell_max")
 
 hkey <- function(p, b, s) paste(p, b, s, sep = "\r")
-h_b  <- setNames(headline$b, hkey(headline$practice, headline$biome, headline$species))
+h_b  <- setNames(headline$b,    hkey(headline$practice, headline$biome, headline$species))
+h_bse <- setNames(headline$b_se, hkey(headline$practice, headline$biome, headline$species))
 
 # rho-component breakdown for the eps_mult perturbation (engine 02_model: LE, PPW)
 rho_parts <- function(practice, biome) {
@@ -66,9 +80,12 @@ mc_one <- function(i) {
   n <- N_MC_ITER
   r <- runif(n, rng("r")[1], rng("r")[2]); g <- runif(n, rng("g")[1], rng("g")[2])
   eps_mult <- runif(n, rng("eps_mult")[1], rng("eps_mult")[2])
-  lambda_mult <- runif(n, rng("lambda_mult")[1], rng("lambda_mult")[2])
   U_mult <- runif(n, rng("U_mult")[1], rng("U_mult")[2])
-  kappa <- rtri(n, rng("kappa")[1], .const("kappa"), rng("kappa")[2])
+  # Gaussian copula couples the leakage driver (kappa) to the reversal driver
+  # (lambda_mult) at rank correlation LEAK_REV_RHO; = 0 gives independence.
+  z1 <- rnorm(n); z2 <- LEAK_REV_RHO * z1 + sqrt(1 - LEAK_REV_RHO^2) * rnorm(n)
+  kappa <- rtri(pnorm(z1), rng("kappa")[1], .const("kappa"), rng("kappa")[2])
+  lambda_mult <- qunif(pnorm(z2), rng("lambda_mult")[1], rng("lambda_mult")[2])
   k0 <- pmin(pmax(r - g, rng("k0")[1]), rng("k0")[2])
 
   protected <- isTRUE(as.logical(row$legally_protected))
@@ -78,9 +95,13 @@ mc_one <- function(i) {
 
   x <- resolve_x(row)                            # 02_model (dynamic for afforestation)
   rp <- rho_parts(row$practice, row$biome)
+  # eps_mult scales numerator AND denominator identically -> it cancels in the
+  # ratio (a uniform elasticity multiplier leaves rho^rep unchanged; manuscript
+  # Methods). Leakage uncertainty is carried by kappa; eps_mult PRCC ~ 0 by design.
   rho_vec <- if (is.null(rp)) rep(0, n) else
     rowSums(vapply(seq_len(nrow(rp)), function(k)
-      rp[k, "weight"] * (eps_mult * rp[k, "num"]) / (rp[k, "abs_d"] + eps_mult * rp[k, "num"]),
+      rp[k, "weight"] * (eps_mult * rp[k, "num"]) /
+        (eps_mult * rp[k, "abs_d"] + eps_mult * rp[k, "num"]),
       numeric(n)))
   L_vec <- pmin(pmax(kappa * rho_vec * x, -ell_max), 1)
   if (x <= 0) L_vec <- pmin(L_vec, ell_max)
@@ -94,9 +115,8 @@ mc_one <- function(i) {
   # A small additive batch-means SE retains estimation uncertainty of the TVaR99.
   b_central <- h_b[[hkey(row$practice, row$biome, row$species)]]
   if (is.null(b_central)) stop("no headline b for ", row$practice, "/", row$biome)
-  bb <- bbuf[bbuf$biome == row$biome & bbuf$forest_type == row$forest_type, ]
-  if (nrow(bb) != 1) stop("no biome_buffer for ", row$biome, "/", row$forest_type)
-  b_se <- if (protected) bb$se_H100 else bb$se_H40
+  b_se <- h_bse[[hkey(row$practice, row$biome, row$species)]]   # practice-level batch-means SE (04)
+  if (is.null(b_se) || is.na(b_se)) stop("no headline b_se for ", row$practice, "/", row$biome)
   U50 <- U50_by_biome[[row$biome]]; if (is.null(U50)) stop("no U_50 for ", row$biome)
   scale_haz <- lambda_mult * (1 + U50 * U_mult) / (1 + U50)
   b_vec <- pmin(pmax(b_central * scale_haz + rnorm(n, 0, b_se), 0), 1)
@@ -146,7 +166,7 @@ for (ii in seq_along(.biomes_cb)) for (jj in seq_along(.biomes_cb)) if (ii < jj)
 }
 cb_robust <- do.call(rbind, .cb_rows)
 n_combos <- nrow(unique(mc_summary[, c("practice", "biome")]))
-write.csv(cb_robust, "engine/output/rank_robustness_biome.csv", row.names = FALSE)
+if (WRITE_CANONICAL) write.csv(cb_robust, "engine/output/rank_robustness_biome.csv", row.names = FALSE)
 cat(sprintf("[07_montecarlo] cross-biome: %d practice x biome combos; pairwise rho %.3f-%.3f over %d biome pairs\n",
             n_combos, min(cb_robust$spearman), max(cb_robust$spearman), nrow(cb_robust)))
 
@@ -172,9 +192,11 @@ prcc_all <- do.call(rbind, by(all_mc, list(all_mc$practice, all_mc$biome, all_mc
     pr$species <- d$species[1]; pr$is_anchor <- d$is_anchor[1]; pr }))
 rownames(prcc_all) <- NULL
 
-saveRDS(all_mc, "engine/output/mc_results.rds")
-write.csv(mc_summary, "engine/output/mc_summary.csv", row.names = FALSE)
-write.csv(prcc_all,   "engine/output/mc_prcc.csv", row.names = FALSE)
+if (WRITE_CANONICAL) {
+  saveRDS(all_mc, "engine/output/mc_results.rds")
+  write.csv(mc_summary, "engine/output/mc_summary.csv", row.names = FALSE)
+  write.csv(prcc_all,   "engine/output/mc_prcc.csv", row.names = FALSE)
+}
 anc <- mc_summary[mc_summary$is_anchor, ]
 cat(sprintf("[07_montecarlo] OK — %d iters x %d practices; anchor mean_share %.1f%%-%.1f%%\n",
             N_MC_ITER, nrow(practices), 100*min(anc$mean_share), 100*max(anc$mean_share)))

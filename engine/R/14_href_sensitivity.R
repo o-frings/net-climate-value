@@ -13,17 +13,17 @@ cat("[14_href] reference-horizon (H_ref) sensitivity...\n")
 H_REF <- read.csv("engine/params/href_values.csv", stringsAsFactors = FALSE)  # label, H_ref
 practices <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
 hl   <- read.csv("engine/output/clean_headline.csv", stringsAsFactors = FALSE)
-bbuf <- read.csv("engine/output/biome_buffer.csv", stringsAsFactors = FALSE)
 schemes  <- read.csv("engine/params/schemes.csv", stringsAsFactors = FALSE)
 coverage <- read.csv("engine/params/scheme_coverage.csv", stringsAsFactors = FALSE)
 H_perm <- .const("H_perm")
 hkey <- function(p, b, s) paste(p, b, s, sep = "\r")
 h_Lb <- hl[, c("practice", "biome", "species", "L", "b")]
 
-# biome buffer (no establishment floor; matches 04/10 post-drop)
-buf_of <- function(biome, ft, protected) {
-  z <- bbuf[bbuf$biome == biome & bbuf$forest_type == ft, ]
-  if (protected) z$b_H100 else z$b_H40
+# practice-level buffer (R_mult/lambda_mult/c_mult applied; matches 04/10). H_ref
+# enters only temporality, so the buffer is H_ref-invariant.
+buf_of <- function(biome, ft, protected, R_mult, lambda_mult, c_mult) {
+  practice_buffer_rate(biome, ft, if (protected) H_perm else 40,
+                       R_mult, lambda_mult, c_mult)$b
 }
 
 # --- (1) NCV by H_ref (anchors) ----------------------------------------------
@@ -56,7 +56,7 @@ for (k in seq_len(nrow(coverage))) {
     biome <- if (nzchar(sc$regional_override)) sc$regional_override else row$biome
     tau2 <- if (protected) H_perm else max(row$tau_2, liab_mid)
     x <- resolve_x(row); L <- leakage_L(row$practice, biome, x)
-    b <- buf_of(biome, row$forest_type, protected)
+    b <- buf_of(biome, row$forest_type, protected, row$R_mult, row$lambda_mult, row$c_mult)
     ftw <- if (row$forest_type == "broadleaf") cv$ft_broadleaf else cv$ft_conifer
     w <- (if (is.na(cv$practice_weight)) 1 else cv$practice_weight) * (if (is.na(ftw)) 1 else ftw)
     for (hh in seq_len(nrow(H_REF))) {

@@ -19,16 +19,15 @@ cat("[10_schemes] cross-scheme integrity gaps...\n")
 schemes   <- read.csv("engine/params/schemes.csv", stringsAsFactors = FALSE)
 coverage  <- read.csv("engine/params/scheme_coverage.csv", stringsAsFactors = FALSE)
 practices <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
-bbuf      <- read.csv("engine/output/biome_buffer.csv", stringsAsFactors = FALSE)
 H_perm    <- .const("H_perm")
 anchors   <- practices[as.logical(practices$is_anchor), ]
 
-# biome buffer lookup for a practice row at a horizon (JRC-scope mature-disturbance
-# buffer; the afforestation establishment-risk floor was removed — see 04_headline.R).
-buffer_for <- function(practice, biome, ft, protected) {
-  bb <- bbuf[bbuf$biome == biome & bbuf$forest_type == ft, ]
-  if (nrow(bb) != 1) stop("no biome_buffer for ", biome, "/", ft)
-  if (protected) bb$b_H100 else bb$b_H40
+# practice-level buffer for a row at a horizon: the empirical TVaR99 with the
+# practice's R_mult/lambda_mult/c_mult applied to the biome base (practice_buffer_rate,
+# 03; JRC-scope mature-disturbance buffer, no establishment floor). Matches 04.
+buffer_for <- function(biome, ft, protected, R_mult, lambda_mult, c_mult) {
+  practice_buffer_rate(biome, ft, if (protected) H_perm else 40,
+                       R_mult, lambda_mult, c_mult)$b
 }
 
 # framework deductions recomputed at a scheme's horizon + region (central params,
@@ -43,7 +42,7 @@ proposed_ns <- function(row, biome_ovr, liab_mid, exclude_buffer) {
        else row$harvest_displacement
   L <- leakage_L(row$practice, biome, x)
   T <- temporality_T(tau2)                       # H_ref = Inf (headline benchmark)
-  b <- buffer_for(row$practice, biome, row$forest_type, protected)
+  b <- buffer_for(biome, row$forest_type, protected, row$R_mult, row$lambda_mult, row$c_mult)
   ns <- if (exclude_buffer) (1 - L) * (1 - T) else (1 - L) * (1 - T) * (1 - b)
   list(L = L, T = T, b = b, ns = ns)
 }

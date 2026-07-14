@@ -11,15 +11,27 @@
 local({
   BASELINE_BUFFER_RATE <- 0.20            # the "Flat 20%" reference line
 
-  # ─── Panel a: per-biome buffer spread across forest-type variants (x100, %) ──
-  practice_spread <- eng("buffer_biome_trajectory.csv") %>%
+  # ─── Panel a: per-biome PRACTICE buffer spread (x100, %) ─────────────────────
+  # Each practice's present-day buffer (practice_buffer.csv; R_mult/lambda_mult/
+  # c_mult applied, 03/04) scaled forward by the biome buffer growth trajectory
+  # buffer(t)/buffer(2025) for its forest type. The spread within a biome is now
+  # driven by the practice mix, not just the two forest-type variants.
+  growth <- eng("buffer_biome_trajectory.csv") %>%
+    group_by(rcp, biome, forest_type) %>%
+    arrange(year) %>%
+    mutate(growth = buffer_rate / buffer_rate[year == min(year)]) %>%
+    ungroup() %>%
+    select(year, rcp, biome, forest_type, growth)
+  pb <- eng("practice_buffer.csv")[, c("practice", "biome", "forest_type", "b_present")]
+  practice_spread <- merge(growth, pb, by = c("biome", "forest_type")) %>%
+    mutate(br = b_present * growth * 100) %>%
     group_by(year, rcp, biome) %>%
     summarise(
-      br_med = median(buffer_rate) * 100,
-      br_min = min(buffer_rate) * 100,
-      br_max = max(buffer_rate) * 100,
-      br_p25 = quantile(buffer_rate, 0.25) * 100,
-      br_p75 = quantile(buffer_rate, 0.75) * 100,
+      br_med = median(br),
+      br_min = min(br),
+      br_max = max(br),
+      br_p25 = quantile(br, 0.25),
+      br_p75 = quantile(br, 0.75),
       .groups = "drop"
     )
 
