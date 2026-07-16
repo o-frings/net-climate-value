@@ -26,6 +26,19 @@
 # =============================================================================
 cat("[07_montecarlo] Monte Carlo uncertainty + PRCC...\n")
 N_MC_ITER <- if (nzchar(Sys.getenv("ENGINE_MC_ITER"))) as.integer(Sys.getenv("ENGINE_MC_ITER")) else 10000L
+# Per-biome, per-type lognormal sdlog for the leakage-elasticity Monte Carlo multipliers
+# (Tier 2). Sourced from the reported standard errors of the primary elasticity studies:
+# CV(demand) ~ 0.20 (Borzykowski 2019; Morland 2018; Buongiorno 2015), CV(domestic supply)
+# ~ 0.30 (Rorstad 2022; Borzykowski 2019; Morland 2018), CV(import/Armington) ~ 0.45
+# (Lundmark & Shahrammehr 2011). Interpolated cells (Mediterranean; no local study) carry
+# 1.5x. Values in engine/params/elasticity_cv.csv. ENGINE_ELAST_CV_SCALE scales all (sens.).
+ELAST_CV_SCALE <- if (nzchar(Sys.getenv("ENGINE_ELAST_CV_SCALE"))) as.numeric(Sys.getenv("ENGINE_ELAST_CV_SCALE")) else 1
+ECV <- read.csv("engine/params/elasticity_cv.csv", stringsAsFactors = FALSE)
+ecv <- function(biome, col) {
+  r <- ECV[ECV$biome == biome, ]
+  if (nrow(r) != 1) stop("no elasticity CV for biome ", biome)
+  ELAST_CV_SCALE * r[[col]]
+}
 
 # Gaussian-copula correlation between the leakage driver (kappa) and the reversal
 # driver (lambda_mult). 0 = the independence baseline the manuscript headline uses;
@@ -57,7 +70,9 @@ hkey <- function(p, b, s) paste(p, b, s, sep = "\r")
 h_b  <- setNames(headline$b,    hkey(headline$practice, headline$biome, headline$species))
 h_bse <- setNames(headline$b_se, hkey(headline$practice, headline$biome, headline$species))
 
-# rho-component breakdown for the eps_mult perturbation (engine 02_model: LE, PPW)
+# rho-component breakdown for the elasticity-multiplier perturbation (02_model: LE, PPW).
+# Returns the domestic and import supply contributions to the numerator separately, so
+# independent demand/supply multipliers can be applied (they no longer cancel).
 rho_parts <- function(practice, biome) {
   w <- PPW[PPW$practice == practice, c("SL", "PW", "WF")]
   if (nrow(w) != 1) stop("no product weights for ", practice)
@@ -66,8 +81,9 @@ rho_parts <- function(practice, biome) {
     if (w[[pc]] == 0) next
     e <- LE[LE$biome == biome & LE$product == pc, ]
     if (nrow(e) != 1) stop("no elasticities for ", biome, " x ", pc)
-    num <- e$u * e$eps_s_dom + (1 - e$u) * e$s * e$eps_s_imp
-    out[[length(out) + 1]] <- c(weight = w[[pc]], num = num, abs_d = abs(e$eps_d))
+    out[[length(out) + 1]] <- c(weight = w[[pc]],
+      num_dom = e$u * e$eps_s_dom, num_imp = (1 - e$u) * e$s * e$eps_s_imp,
+      abs_d = abs(e$eps_d))
   }
   if (length(out) == 0) return(NULL)             # harvest-neutral: rho = 0
   do.call(rbind, out)
@@ -95,16 +111,6 @@ mc_one <- function(i) {
 
   x <- resolve_x(row)                            # 02_model (dynamic for afforestation)
   rp <- rho_parts(row$practice, row$biome)
-  # eps_mult scales numerator AND denominator identically -> it cancels in the
-  # ratio (a uniform elasticity multiplier leaves rho^rep unchanged; manuscript
-  # Methods). Leakage uncertainty is carried by kappa; eps_mult PRCC ~ 0 by design.
-  rho_vec <- if (is.null(rp)) rep(0, n) else
-    rowSums(vapply(seq_len(nrow(rp)), function(k)
-      rp[k, "weight"] * (eps_mult * rp[k, "num"]) /
-        (eps_mult * rp[k, "abs_d"] + eps_mult * rp[k, "num"]),
-      numeric(n)))
-  L_vec <- pmin(pmax(kappa * rho_vec * x, -ell_max), 1)
-  if (x <= 0) L_vec <- pmin(L_vec, ell_max)
 
   # Buffer: PARAMETER uncertainty in the hazard propagates into the reserve
   # (actuarial premium principle: b is a risk loading on expected loss, ~linear in
@@ -121,11 +127,32 @@ mc_one <- function(i) {
   scale_haz <- lambda_mult * (1 + U50 * U_mult) / (1 + U50)
   b_vec <- pmin(pmax(b_central * scale_haz + rnorm(n, 0, b_se), 0), 1)
 
+  # Leakage elasticity uncertainty (Tier 2). The uniform eps_mult (drawn above) is
+  # retained ONLY to preserve the per-practice RNG stream, so T and b stay identical
+  # to the pre-propagation baseline; it cancels in the rho^rep ratio. Genuine
+  # elasticity uncertainty needs INDEPENDENT shocks to demand vs supply so the ratio
+  # moves: draw independent lognormal multipliers (median 1) on the demand elasticity
+  # and on the domestic and import supply elasticities, with per-biome, per-type sdlog
+  # sourced from the primary studies' standard errors (elasticity_cv.csv: CV ~0.20
+  # demand, ~0.30 supply, ~0.45 import; 1.5x for interpolated Mediterranean cells).
+  # Drawn last (after the buffer rnorm) so only leakage changes.
+  m_d    <- exp(rnorm(n, 0, ecv(row$biome, "sdlog_eps_d")))
+  m_sdom <- exp(rnorm(n, 0, ecv(row$biome, "sdlog_eps_s_dom")))
+  m_simp <- exp(rnorm(n, 0, ecv(row$biome, "sdlog_eps_s_imp")))
+  rho_vec <- if (is.null(rp)) rep(0, n) else
+    rowSums(vapply(seq_len(nrow(rp)), function(k) {
+      num_k <- m_sdom * rp[k, "num_dom"] + m_simp * rp[k, "num_imp"]
+      rp[k, "weight"] * num_k / (m_d * rp[k, "abs_d"] + num_k)
+    }, numeric(n)))
+  L_vec <- pmin(pmax(kappa * rho_vec * x, -ell_max), 1)
+  if (x <= 0) L_vec <- pmin(L_vec, ell_max)
+
   ns <- (1 - L_vec) * (1 - T_vec) * (1 - b_vec)
   data.frame(practice = row$practice, biome = row$biome, species = row$species,
              is_anchor = as.logical(row$is_anchor), iteration = seq_len(n),
              r = r, g = g, k0 = k0, eps_mult = eps_mult, lambda_mult = lambda_mult,
              U_mult = U_mult, kappa = kappa,
+             eps_d_mult = m_d, eps_sdom_mult = m_sdom, eps_simp_mult = m_simp,
              L = L_vec, T = T_vec, b = b_vec, net_share = ns,
              delta_leak = L_vec, delta_temp = (1 - L_vec) * T_vec,
              delta_buf = (1 - L_vec) * (1 - T_vec) * b_vec, stringsAsFactors = FALSE)
@@ -171,7 +198,7 @@ cat(sprintf("[07_montecarlo] cross-biome: %d practice x biome combos; pairwise r
             n_combos, min(cb_robust$spearman), max(cb_robust$spearman), nrow(cb_robust)))
 
 # --- PRCC per practice (partial rank correlation, params vs net_share) --------
-mc_params <- c("k0", "r", "g", "kappa", "lambda_mult", "eps_mult", "U_mult")
+mc_params <- c("k0", "r", "g", "kappa", "lambda_mult", "eps_d_mult", "eps_sdom_mult", "eps_simp_mult", "U_mult")
 compute_prcc <- function(d) {
   ranked <- as.data.frame(lapply(d[, c(mc_params, "net_share")], rank))
   # drop zero-variance inputs (e.g. constant for a degenerate practice)

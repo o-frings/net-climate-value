@@ -16,7 +16,8 @@ local({
   labs_p <- c(k0 = "Net discount rate (r–g)", kappa = "Leakage intensity (κ)",
               g = "SCC growth rate (g)", r = "Discount rate (r)",
               U_mult = "Uncertainty multiplier (U)", lambda_mult = "Disturbance rate (λ)",
-              eps_mult = "Elasticity multiplier (ε)")
+              eps_d_mult = "Demand elasticity", eps_sdom_mult = "Supply elasticity (domestic)",
+              eps_simp_mult = "Supply elasticity (import)")
   # parameter order: ascending mean|PRCC| so the strongest driver sits at the top
   marg <- aggregate(abs(prcc) ~ parameter, agg, mean); names(marg)[2] <- "mabs"
   marg$param_label <- labs_p[marg$parameter]

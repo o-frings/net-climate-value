@@ -1,0 +1,5 @@
+biome,sdlog_eps_d,sdlog_eps_s_dom,sdlog_eps_s_imp,provenance,source
+Boreal,0.20,0.30,0.45,direct,"CV=SE/|est| from reported standard errors: demand ~0.13-0.23 (Borzykowski 2019 Swiss roundwood 0.44/1.89; Morland 2018 Table 5; Buongiorno 2015 Table 10); dom.supply ~0.24-0.34 (Borzykowski 2019 0.067/0.28-0.097/0.37; Rorstad 2022 sawlog common-slope; Morland 2018 Table 4); import/Armington ~0.35-0.48 (Lundmark & Shahrammehr 2011 roundwood, Table A1)"
+Temperate,0.20,0.30,0.45,direct,"as Boreal"
+Temperate_UK,0.20,0.30,0.45,direct,"as Boreal"
+Mediterranean,0.30,0.45,0.68,interpolated,"1.5x direct CVs: no Mediterranean-specific elasticity study; values interpolated from French Armington anchors, so carry additional cross-region transfer uncertainty"
