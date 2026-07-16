@@ -109,3 +109,34 @@ rownames(area_today) <- NULL
 write.csv(area_today, "engine/output/scenario_area_today.csv", row.names = FALSE)
 cat(sprintf("[08_scenarios] OK — 6 scenarios; NCV-adjusted area today %.0f-%.0f Mha (target %.0f MtCO2/yr)\n",
             min(area_today$area_mean), max(area_today$area_mean), CRCF_TARGET_MT))
+
+# --- Foregone-harvest / market-saturation check (Murray phi at EU scale) --------
+# The per-project leakage rate is the marginal (phi->0) MAXIMUM (02_model); a
+# scale-dependent (phi>0) treatment would attenuate it. As an upper bound we instead
+# report the aggregate foregone harvest at the NCV-adjusted deployment area (same ns
+# draws as the area above), summed over harvest-reducing practices (x>0), against the
+# EU roundwood market (~500 Mm3/yr x ~0.9 tCO2/m3 ~= 450 MtCO2/yr; APPROXIMATE).
+# When this approaches/exceeds 100%, harvest reduction saturates the timber market
+# before the land requirement is met -> the scenario is infeasible on market grounds.
+EU_ROUNDWOOD_MTCO2 <- 450
+x_by_practice <- tapply(practices$harvest_displacement, practices$practice, function(v) v[1])
+foregone_tbl <- do.call(rbind, lapply(names(scenarios), function(nm) {
+  s <- scenarios[[nm]]; s <- s[s$eu_area_ha > 0, ]
+  fore_mc <- 0
+  for (p in unique(s$practice)) {
+    xp <- x_by_practice[[p]]
+    if (is.null(xp) || is.na(xp) || xp <= 0) next            # harvest-reducing withdrawal only
+    ns <- ns_draws(p); if (is.null(ns)) next
+    G_p <- sum(s$eu_annual_MtCO2[s$practice == p])           # face gross contribution (MtCO2/yr)
+    fore_mc <- fore_mc + xp * G_p / pmax(ns, 0.02)           # foregone harvest at NCV-adjusted deployment
+  }
+  data.frame(scenario = nm,
+             foregone_MtCO2 = median(fore_mc), foregone_p5 = quantile(fore_mc, .05),
+             foregone_p95 = quantile(fore_mc, .95),
+             pct_EU_roundwood = 100 * median(fore_mc) / EU_ROUNDWOOD_MTCO2,
+             stringsAsFactors = FALSE)
+}))
+rownames(foregone_tbl) <- NULL
+write.csv(foregone_tbl, "engine/output/scenario_leakage_scale.csv", row.names = FALSE)
+cat(sprintf("[08_scenarios] foregone harvest at deployment (harvest-reducing withdrawal): %.0f-%.0f%% of EU roundwood\n",
+            min(foregone_tbl$pct_EU_roundwood), max(foregone_tbl$pct_EU_roundwood)))
