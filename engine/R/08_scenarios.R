@@ -115,7 +115,9 @@ cat(sprintf("[08_scenarios] OK — 6 scenarios; NCV-adjusted area today %.0f-%.0
 # scale-dependent (phi>0) treatment would attenuate it. As an upper bound we instead
 # report the aggregate foregone harvest at the NCV-adjusted deployment area (same ns
 # draws as the area above), summed over harvest-reducing practices (x>0), against the
-# EU roundwood market (~500 Mm3/yr x ~0.9 tCO2/m3 ~= 450 MtCO2/yr; APPROXIMATE).
+# EU-27 roundwood removals 460 Mm3 (2023), 510 Mm3 (2022) [Eurostat] x ~0.9 tCO2/m3
+# (basic wood density ~0.5 t/m3, 50% C, x 44/12; IPCC 2006 AFOLU) ~= 450 MtCO2/yr
+# (conservative high end of the ~410-460 range; value unchanged, provenance tightened).
 # When this approaches/exceeds 100%, harvest reduction saturates the timber market
 # before the land requirement is met -> the scenario is infeasible on market grounds.
 EU_ROUNDWOOD_MTCO2 <- 450
