@@ -80,7 +80,11 @@ resolve_x <- function(row) {
 # (Inf is passed through exactly: exp(-k0*Inf) = 0). phi_add = 0 (headline).
 temporality_T <- function(tau_2, phi_add = 0, H_ref = Inf) {
   k0 <- .const("r") - .const("g")
-  if (k0 <= 0) k0 <- 0.001
+  # k0 <= 0 (g >= r) inverts the sign of the time weight, so it is out of the
+  # admissible domain rather than a case to substitute a value for. Fail instead:
+  # silently inventing k0 = 0.001 here would contradict this file's no-fallbacks rule
+  # and put a fabricated discount rate into every reported T.
+  if (k0 <= 0) stop("r - g must be > 0 for the H_ref -> Inf benchmark; got r - g = ", k0)
   rate  <- k0 + phi_add
   tau_1 <- .const("tau_1")
   num   <- (1 - exp(-rate * (tau_2 - tau_1))) / rate

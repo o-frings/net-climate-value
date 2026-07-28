@@ -51,7 +51,10 @@ build_crcf_scenario <- function(target_mt, class_weights) {
   }
   expanded <- do.call(rbind, lapply(seq_len(nrow(out)), function(i) {
     row <- out[i, ]
-    bs <- PRACTICE_BIOMES[[row$practice]]; if (is.null(bs)) bs <- "Temperate"
+    # No Temperate default: a base practice absent from practices.csv would have its
+    # entire EU area silently reassigned to one biome, changing the area headline.
+    bs <- PRACTICE_BIOMES[[row$practice]]
+    if (is.null(bs)) stop("no anchor biomes in practices.csv for: ", row$practice)
     sh <- BIOME_FOREST_SHARES[bs]; sh <- sh / sum(sh)
     do.call(rbind, lapply(seq_along(bs), function(j) {
       r <- row; r$biome <- bs[j]; r$eu_area_ha <- row$eu_area_ha * sh[j]; r

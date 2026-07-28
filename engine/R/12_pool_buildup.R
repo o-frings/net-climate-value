@@ -37,7 +37,11 @@ for (f in files) {
   if (is.null(b_by_country[[cn]]) || is.na(b_by_country[[cn]])) next
   if (is.null(sev_by_country[[cn]]) || is.null(U50_by_country[[cn]])) next
   d <- as.data.frame(readRDS(f)); d <- d[match(YRS, d$year), ]
-  ser[[cn]] <- ifelse(is.na(d$lambda_natural), 0, d$lambda_natural)
+  # A year absent from the country series is missing data, not a disturbance-free year.
+  # Treating it as zero would depress loss, div_ratio, and the published pool figures.
+  if (anyNA(d$lambda_natural)) stop("missing disturbance years for ", cn, ": ",
+                                    sum(is.na(d$lambda_natural)), " of ", length(YRS))
+  ser[[cn]] <- d$lambda_natural
   meta[[cn]] <- list(biome = bm, cc = c_by_biome[[bm]], sev = sev_by_country[[cn]],
                      U50 = U50_by_country[[cn]], b = b_by_country[[cn]],
                      fkha = sum(efda_sum$forest_kha[efda_sum$country_root == cn], na.rm = TRUE))
