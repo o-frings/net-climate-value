@@ -28,4 +28,5 @@ source("engine/R/12_pool_buildup.R")         # buffer diversification vs pool si
 source("engine/R/13_jrc.R")                  # per-country comparison vs JRC/Marinelli (ED)
 source("engine/R/14_href_sensitivity.R")     # H_ref sensitivity of NCV + scheme gaps (tables)
 source("engine/R/15_figure_data.R")          # plot-ready tables (engine computes; figs only plot)
+source("engine/R/16_policy_deductions.R")    # deduction rates per practice x biome
 cat("=== ENGINE PIPELINE COMPLETE — outputs in engine/output/ ===\n")
