@@ -97,7 +97,11 @@ practice_buffer <- do.call(rbind, lapply(seq_len(nrow(combos)), function(i) {
 rownames(practice_buffer) <- NULL
 write.csv(practice_buffer, "engine/output/practice_buffer.csv", row.names = FALSE)
 b_all  <- c(practice_buffer$b_present, practice_buffer$b_rcp85_2100)
-rng_lo <- min(b_all, na.rm = TRUE); rng_hi <- max(b_all, na.rm = TRUE)
+# An NA buffer here means a cell failed to compute, so na.rm would report the published
+# b range over an unknown subset. Require every cell to have produced a rate.
+if (anyNA(b_all)) stop("practice buffer: ", sum(is.na(b_all)), " of ", length(b_all),
+                       " cells are NA; b range would cover an unknown subset")
+rng_lo <- min(b_all); rng_hi <- max(b_all)
 cat(sprintf("[04_headline] practice buffer range b in [%.2f, %.2f] across %d practice-biome combos x {present, RCP8.5-2100}\n",
             rng_lo, rng_hi, nrow(combos)))
 anc <- headline[headline$is_anchor, ]

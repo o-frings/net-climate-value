@@ -25,8 +25,14 @@ country_disturbance <- do.call(rbind, lapply(split(efda, efda$country_root), fun
     forest_kha      = sum(d$forest_kha, na.rm = TRUE),
     stringsAsFactors = FALSE)
 }))
+# The pmax(., 1e-6) floor would turn a zero pre-2018 rate into a ratio of ~1e6 and feed
+# it to the published "top elevation" figure, so require a positive denominator.
+if (any(country_disturbance$lambda_pre2018 <= 0))
+  stop("non-positive pre-2018 disturbance rate for: ",
+       paste(country_disturbance$country[country_disturbance$lambda_pre2018 <= 0],
+             collapse = ", "))
 country_disturbance$elevation_ratio <-
-  country_disturbance$lambda_post2018 / pmax(country_disturbance$lambda_pre2018, 1e-6)
+  country_disturbance$lambda_post2018 / country_disturbance$lambda_pre2018
 rownames(country_disturbance) <- NULL
 country_disturbance <- country_disturbance[order(-country_disturbance$lambda_full), ]
 

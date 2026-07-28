@@ -117,8 +117,12 @@ btraj_key <- function(rcp, bm, ft) paste(rcp, bm, ft)
 agg_scen <- function(rows, sc, rcp) {
   s <- scen[scen$scenario == sc, ]; wsum <- sum(s$eu_area_ha); acc <- rep(0, length(years))
   for (i in seq_len(nrow(s))) {
-    tr <- rows[[btraj_key(rcp, s$biome[i], s$forest_type[i])]]
-    if (!is.null(tr)) acc <- acc + (s$eu_area_ha[i] / wsum) * tr$buffer_rate
+    # wsum covers ALL rows, so silently omitting one from acc would understate the
+    # trajectory by exactly that area share.
+    key <- btraj_key(rcp, s$biome[i], s$forest_type[i])
+    tr <- rows[[key]]
+    if (is.null(tr)) stop("no buffer trajectory for ", key)
+    acc <- acc + (s$eu_area_ha[i] / wsum) * tr$buffer_rate
   }
   acc
 }
@@ -176,7 +180,9 @@ anc_bm <- setNames(.anc$biome, .anc$practice)              # anchor biome per pr
 biome_growth <- function(bm, rcp) {                        # buffer(t)/buffer(2025) path
   z <- biome_traj[biome_traj$biome == bm & biome_traj$forest_type == "broadleaf" &
                   biome_traj$rcp == rcp, ]
-  if (nrow(z) == 0) return(rep(1, length(years)))
+  # rep(1, .) would mean "no climate deterioration at all", biasing the forward area
+  # requirement down. A missing biome trajectory is a fault, not a flat path.
+  if (nrow(z) == 0) stop("no biome trajectory for ", bm, " / ", rcp)
   z <- z[order(z$year), ]; z$buffer_rate / z$buffer_rate[1]
 }
 draws_of <- function(p, col) {                             # per-draw vector, anchor variant

@@ -55,14 +55,21 @@ expected_severity <- function(p_sr) {
   if (any(z <= 0)) return(1e10)
   length(excess) * log(sigma) + (1 + 1 / xi) * sum(log(z))
 }
+# GPD-vs-empirical incidence counter. Falling back to the empirical quantile gives a
+# materially different b, and b is in every published net_share, so the fallback must be
+# countable rather than invisible. Reported by .gpd_report() at the end of this file.
+.gpd_tally <- c(few_obs = 0L, few_excess = 0L, no_converge = 0L, fitted = 0L)
+.gpd_bump <- function(w) .gpd_tally[[w]] <<- .gpd_tally[[w]] + 1L
 fit_gpd <- function(x, threshold_q = 0.75) {
-  x <- x[is.finite(x)]; if (length(x) < 40) return(NULL)
+  x <- x[is.finite(x)]
+  if (length(x) < 40) { .gpd_bump("few_obs"); return(NULL) }
   u <- as.numeric(quantile(x, threshold_q)); excess <- x[x > u] - u
-  if (length(excess) < 20) return(NULL)
+  if (length(excess) < 20) { .gpd_bump("few_excess"); return(NULL) }
   fit <- tryCatch(optim(c(log(mean(excess)), 0.1), .gpd_nll, excess = excess,
                         method = "Nelder-Mead", control = list(maxit = 500)),
                   error = function(e) NULL)
-  if (is.null(fit) || fit$convergence != 0) return(NULL)
+  if (is.null(fit) || fit$convergence != 0) { .gpd_bump("no_converge"); return(NULL) }
+  .gpd_bump("fitted")
   list(sigma = exp(fit$par[1]), xi = fit$par[2], threshold = u,
        exceedance_rate = length(excess) / length(x))
 }
@@ -144,7 +151,12 @@ bootstrap_buffer <- function(series, severity, U_50, R_mult, c_corr, H, n_mc = B
     seg <- cum_loss[((j - 1) * bsz + 1):(j * bsz)]
     min(tvar_semi(0.99, seg, fit_gpd(seg)), 1.0)
   }, numeric(1))
-  list(b = b, var99 = var99, se = stats::sd(batch, na.rm = TRUE) / sqrt(K_BATCH))
+  # b_se is the width of the MC buffer perturbation, hence of the published NCV
+  # interval. Dropping a failed batch while still dividing by sqrt(K_BATCH) would
+  # understate it, so require all batches to have produced a value.
+  if (anyNA(batch)) stop("batch-means SE: ", sum(is.na(batch)), " of ", K_BATCH,
+                         " batches failed")
+  list(b = b, var99 = var99, se = stats::sd(batch) / sqrt(K_BATCH))
 }
 
 # --- grid: country x forest_type x horizon -----------------------------------
@@ -185,6 +197,13 @@ dir.create("engine/output", showWarnings = FALSE, recursive = TRUE)
 write.csv(clean_buffer, "engine/output/clean_buffer_rates.csv", row.names = FALSE)
 cat(sprintf("[03_buffer] OK — %d country x forest-type rows (corr-limited N_eff=1/c, n_mc=%d, seed=%d)\n",
             nrow(clean_buffer), BUF_N_MC, BUF_SEED))
+.gpd_report <- function(stage) {
+  n <- sum(.gpd_tally); fb <- n - .gpd_tally[["fitted"]]
+  cat(sprintf("[03_buffer] GPD tail %s: %d of %d fits succeeded, %d fell back to the empirical quantile (few_obs %d, few_excess %d, no_converge %d)\n",
+              stage, .gpd_tally[["fitted"]], n, fb, .gpd_tally[["few_obs"]],
+              .gpd_tally[["few_excess"]], .gpd_tally[["no_converge"]]))
+}
+.gpd_report("after country grid")
 
 # =============================================================================
 # practice_buffer_rate() — practice-level empirical TVaR99 buffer

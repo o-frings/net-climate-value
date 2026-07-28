@@ -88,6 +88,12 @@ for (k in seq_len(nrow(coverage))) {
 }
 scheme_gaps <- do.call(rbind, rows); rownames(scheme_gaps) <- NULL
 scheme_gaps$joint_weight <- scheme_gaps$practice_weight * scheme_gaps$ft_weight
+# The "missing -> equal" weight default is the dominant regime, not an edge case, so
+# report how many cells it covers rather than leaving it invisible in the weighting.
+.wdef <- sum(is.na(coverage$practice_weight))
+if (.wdef > 0)
+  cat(sprintf("[10_schemes] weight default applied: %d of %d scheme_coverage rows have NA practice_weight (treated as equal)\n",
+              .wdef, nrow(coverage)))
 # decomposition identity: deltas sum to (scheme_net - proposed_net) per cell
 .dchk <- with(scheme_gaps,
               max(abs((delta_L + delta_T + delta_b) - (scheme_net - proposed_net))))
@@ -113,7 +119,10 @@ scheme_gap_mc <- do.call(rbind, lapply(unique(.fg$scheme), function(sc) {
   sg <- .fg[.fg$scheme == sc, ]; sw <- sum(sg$joint_weight)
   acc <- numeric(.niter)
   for (k in seq_len(nrow(sg))) {
-    nd <- .draws[[sg$cell[k]]]; if (is.null(nd)) next
+    # No skip: sw is summed over ALL rows, so dropping one from acc alone would divide
+    # by too large a denominator and shrink the reported gap -- flattering the scheme.
+    nd <- .draws[[sg$cell[k]]]
+    if (is.null(nd)) stop("no MC draws for scheme cell: ", gsub("\r", " | ", sg$cell[k]))
     pert <- nd - .netc[[sg$cell[k]]]
     net_adj <- sg$proposed_net_share[k] + pert
     acc <- acc + sg$joint_weight[k] * (sg$scheme_net_share[k] - net_adj) / sg$scheme_net_share[k]
