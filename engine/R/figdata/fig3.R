@@ -35,17 +35,16 @@ local({
     d <- d %>% filter(as.logical(is_anchor))   # one representative variant per practice
     if (!is.null(practices_filter)) d <- d %>% filter(practice %in% practices_filter)
     d %>%
-      group_by(ptype, practice, biome, species) %>%
-      summarise(net_share = median(net_share), delta_leak = median(delta_leak),
-                delta_temp = median(delta_temp), delta_buf = median(delta_buf),
-                .groups = "drop") %>%
+      median_draw(c("ptype", "practice", "biome", "species")) %>%
       filter(!is_secondary_variant(practice, species)) %>%
+      # net_share is the median draw's own value, so it equals the MC median quoted in
+      # the text and the three deltas already sum to 1 - net_share exactly. Do NOT
+      # recompute it additively from the deltas.
       # delta_leak is SIGNED: >0 for harvest-reducing (a deduction), <0 for
       # supply-positive practices that add timber supply (negative leakage, a
-      # value gain). Keep the sign so the decomposition shows it; split into a
-      # left-side deduction (leak_ded) and a right-side value gain (leak_gain).
-      mutate(net_share = 1 - delta_temp - delta_leak - delta_buf,
-             leak_ded  = pmax(delta_leak, 0),
+      # value gain). Split for display only, into a left-side deduction (leak_ded)
+      # and a right-side value gain (leak_gain); the split never touches net_share.
+      mutate(leak_ded  = pmax(delta_leak, 0),
              leak_gain = pmax(-delta_leak, 0),
              bar_label = practice_full_label(practice, species, biome)) %>%
       arrange(desc(net_share)) %>%
@@ -53,6 +52,7 @@ local({
   }
 
   pbm <- build_decomp(mc_results, covered_practices)
+  assert_adds_up(pbm, "fig3 panel a")
   # 'ord' is the integer position used by the plot to set the bar_label factor
   # levels (rev(bar_label) — descending net_share top-to-bottom after coord_flip).
   pbm <- pbm %>% mutate(ord = rev(seq_len(n())))

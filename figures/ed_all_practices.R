@@ -52,6 +52,12 @@ local({
              width = 0.65, colour = NA) +
     scale_fill_gradient2(low = "#C0392B", mid = "#E8D5C4", high = "#BDD7EE",
                          midpoint = 0.30, guide = "none") +
+    # negative-leakage gain: supply-positive practices add timber supply, so leakage
+    # returns value. Drawn from the 0 axis in the Leakage colour, as in fig3 panel a.
+    geom_rect(data = subset(net_bar, leak_gain > 0),
+              aes(xmin = as.integer(variant) - 0.325, xmax = as.integer(variant) + 0.325,
+                  ymin = 0, ymax = leak_gain),
+              fill = "#808080", inherit.aes = FALSE) +
     geom_text(data = net_bar, aes(x = variant, y = label_y, label = label),
               size = 2.6, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +

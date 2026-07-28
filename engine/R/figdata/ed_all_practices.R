@@ -18,13 +18,15 @@
 peatland_species <- c("Paludiculture", "Drained peatland", "Drained peatland forest")
 
 xb <- mc_results %>%
-  group_by(practice, biome, species) %>%
-  summarise(net_share = median(net_share), delta_leak = median(delta_leak),
-            delta_temp = median(delta_temp), delta_buf = median(delta_buf),
-            .groups = "drop") %>%
+  median_draw(c("practice", "biome", "species")) %>%
   mutate(
-    delta_leak = pmax(delta_leak, 0),
-    net_share  = 1 - delta_temp - delta_leak - delta_buf,
+    # Same convention as fig3: net_share is the median draw's own value, so it matches
+    # the MC median in the text and the deltas sum to 1 - net_share exactly. The old
+    # code clamped delta_leak BEFORE recomputing net_share additively, which discarded
+    # the timber-supply gain of supply-positive practices and put ED2 up to 6.7 pp below
+    # fig3 for the same cell. Clamp for display only, never in the arithmetic.
+    leak_ded   = pmax(delta_leak, 0),
+    leak_gain  = pmax(-delta_leak, 0),
     ft_code    = unname(FOREST_TYPE_ABBREV[sapply(species, forest_type_from_species)]),
     ft_code    = ifelse(is.na(ft_code) | species %in% peatland_species, "—", ft_code),
     biome_code = unname(BIOME_ABBREV[biome]),
@@ -34,6 +36,8 @@ xb <- mc_results %>%
 # Practices ordered by mean NCV desc; variants ascending so highest sits at the
 # top after coord_flip (global factor, exactly as legacy). Emit integer 'ord'
 # columns so the figure builds factors from these without any computation.
+assert_adds_up(xb, "ED2 all-practices decomposition")
+
 practice_order <- xb %>% group_by(practice) %>%
   summarise(mean_nv = mean(net_share), .groups = "drop") %>%
   arrange(desc(mean_nv)) %>% pull(practice)
@@ -53,12 +57,15 @@ xb <- xb %>% mutate(
 # label_y = mid-bar text anchor) so the figure does no arithmetic in aes().
 ded_long <- xb %>%
   select(practice, practice_ord, variant, variant_ord,
-         Leakage = delta_leak, Time = delta_temp, Buffer = delta_buf) %>%
+         Leakage = leak_ded, Time = delta_temp, Buffer = delta_buf) %>%
   pivot_longer(c(Leakage, Time, Buffer), names_to = "component", values_to = "share") %>%
   mutate(component_ord = match(component, c("Buffer", "Time", "Leakage")),
          neg_share = -share)
 
+# leak_gain travels with the net bar (drawn rightward from 0, as in fig3) so that
+# supply-positive practices show their timber-supply gain instead of losing it to a clamp.
 net_bar <- xb %>% transmute(practice, practice_ord, variant, variant_ord, net_share,
+                            leak_gain,
                             label_y = net_share / 2,
                             label = sprintf("%.0f%%", net_share * 100))
 
