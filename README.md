@@ -54,13 +54,22 @@ Rscript renv_bootstrap.R
 # 1. Compute results (~10,000 MC iterations)
 Rscript engine/R/run_engine.R
 
-# 2. Render figures + tables, then sync into the manuscript
+# 2. Check the invariants and that nothing drifted
+Rscript tests/verify_engine.R
+
+# 3. Render figures + tables, then sync into the manuscript
 Rscript figures/run_figures.R
 bash figures/sync_to_manuscript.sh
 ```
 
 Re-running the engine yields byte-identical `engine/output/` (every module is
 seeded). Set `ENGINE_MC_ITER=1000` for a quick smoke run.
+
+`tests/verify_engine.R` is the gate: it checks the decomposition identities, output
+completeness, absence of NA in published columns, that the figure tables report the same
+medians as `mc_summary`, and an md5 manifest over every output. If a change to the
+methodology is intended, re-run with `--bless` to record the new manifest — that keeps
+deliberate changes explicit and silent drift impossible.
 
 ## Layout
 
