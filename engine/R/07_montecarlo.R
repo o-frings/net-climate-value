@@ -171,9 +171,7 @@ agg <- function(d) data.frame(
   mean_leak = mean(d$delta_leak), mean_temp = mean(d$delta_temp),
   mean_buf = mean(d$delta_buf),
   # Per-channel MC medians: reported values are MC medians throughout, so the
-  # policy deduction table (Table S22) needs medians, not the means above.
-  p50_leak = quantile(d$delta_leak, .50), p50_temp = quantile(d$delta_temp, .50),
-  p50_buf = quantile(d$delta_buf, .50),
+  # policy deduction table (16) needs medians of the rates, not the means above.
   p50_L = quantile(d$L, .50), p50_T = quantile(d$T, .50), p50_b = quantile(d$b, .50),
   stringsAsFactors = FALSE)
 mc_summary <- do.call(rbind, by(all_mc, list(all_mc$practice, all_mc$biome, all_mc$species),
