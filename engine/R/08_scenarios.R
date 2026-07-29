@@ -79,30 +79,40 @@ scen_tbl <- do.call(rbind, lapply(names(scenarios), function(nm) {
 write.csv(scen_tbl, "engine/output/scenario_practices.csv", row.names = FALSE)
 
 # --- NCV-adjusted area required today (iteration-level MC aggregation) ----------
-# anchor net_share draws per practice (10k-vector ordered by iteration)
-anc_mc <- mc[mc$is_anchor, ]
-anc_biome <- setNames(anchors$biome, anchors$practice)   # anchor biome per practice
-ns_draws <- function(practice) {
-  bm <- anc_biome[[practice]]; if (is.null(bm)) return(NULL)
-  d <- anc_mc[anc_mc$practice == practice & anc_mc$biome == bm, ]
-  if (nrow(d) == 0) return(NULL)
-  d <- d[order(d$iteration), ]
-  # if multiple anchor species share the practice/biome, use the first species' stream
-  sp <- d$species[1]; d$net_share[d$species == sp]
+# net_share draws for a scenario CELL (practice x biome), as a 10k-vector ordered by
+# iteration. Area is spread across a practice's biomes by forest-area share, so the
+# divisor must be that biome's own NCV: the previous version summed area over ALL biomes
+# but divided by the ANCHOR biome's first species, and because 1/NCV is convex that
+# understates the requirement wherever NCV is biome-heterogeneous (most for
+# harvest-reducing practices, whose Mediterranean cells sit far below their Temperate
+# anchors). Same Jensen argument this file already applies across MC iterations.
+#
+# Species (forest type) within a cell are still collapsed by an equal-weighted per-draw
+# mean. That is the remaining aggregation, and it needs a forest-type area share to do
+# properly -- see D1_DISAGGREGATION_SCOPE.md step 3. Bounded at +-3.5 Mha on the headline.
+ns_draws_cell <- function(practice, biome) {
+  d <- mc[mc$practice == practice & mc$biome == biome, ]
+  if (nrow(d) == 0)
+    stop("no MC draws for scenario cell: ", practice, " / ", biome)
+  sp <- unique(d$species)
+  m <- vapply(sp, function(s) {
+    v <- d[d$species == s, ]
+    v$net_share[order(v$iteration)]
+  }, numeric(max(d$iteration)))
+  if (length(sp) > 1) rowMeans(m) else as.vector(m)
 }
 
 .floor_hits <- 0L; .floor_n <- 0L
 area_today <- do.call(rbind, lapply(names(scenarios), function(nm) {
   s <- scenarios[[nm]]; s <- s[s$eu_area_ha > 0, ]
   area_mc <- NULL
-  for (p in unique(s$practice)) {
-    ns <- ns_draws(p); if (is.null(ns)) next
-    area_p <- sum(s$eu_area_ha[s$practice == p])      # total area for practice (all biomes)
+  for (i in seq_len(nrow(s))) {                       # one row per practice x biome
+    ns <- ns_draws_cell(s$practice[i], s$biome[i])
     # The 0.02 floor regularises the 1/x singularity, so it truncates the right tail
     # of the area distribution. Count how often it binds: a reader otherwise cannot
     # tell whether area_p95 is data or the floor.
     .floor_hits <<- .floor_hits + sum(ns < 0.02); .floor_n <<- .floor_n + length(ns)
-    contrib <- area_p / pmax(ns, 0.02)
+    contrib <- s$eu_area_ha[i] / pmax(ns, 0.02)
     area_mc <- if (is.null(area_mc)) contrib else area_mc + contrib
   }
   area_mc <- area_mc / 1e6                            # -> Mha
@@ -135,12 +145,15 @@ x_by_practice <- tapply(practices$harvest_displacement, practices$practice, func
 foregone_tbl <- do.call(rbind, lapply(names(scenarios), function(nm) {
   s <- scenarios[[nm]]; s <- s[s$eu_area_ha > 0, ]
   fore_mc <- 0
-  for (p in unique(s$practice)) {
+  for (i in seq_len(nrow(s))) {                             # per practice x biome, as above
+    p  <- s$practice[i]
+    if (!p %in% names(x_by_practice))
+      stop("no harvest displacement x for scenario practice: ", p)
     xp <- x_by_practice[[p]]
-    if (is.null(xp) || is.na(xp) || xp <= 0) next            # harvest-reducing withdrawal only
-    ns <- ns_draws(p); if (is.null(ns)) next
-    G_p <- sum(s$eu_annual_MtCO2[s$practice == p])           # face gross contribution (MtCO2/yr)
-    fore_mc <- fore_mc + xp * G_p / pmax(ns, 0.02)           # foregone harvest at NCV-adjusted deployment
+    if (is.na(xp) || xp <= 0) next                          # harvest-reducing withdrawal only
+    ns <- ns_draws_cell(p, s$biome[i])
+    G_p <- s$eu_annual_MtCO2[i]                             # face gross contribution (MtCO2/yr)
+    fore_mc <- fore_mc + xp * G_p / pmax(ns, 0.02)          # foregone harvest at NCV-adjusted deployment
   }
   data.frame(scenario = nm,
              foregone_MtCO2 = median(fore_mc), foregone_p5 = quantile(fore_mc, .05),
