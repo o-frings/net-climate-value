@@ -14,18 +14,25 @@
 # =============================================================================
 
 local({
-  practice_type_map_v2 <- c(
-    "Set-aside" = "Harvest-reducing", "Extended rotation" = "Harvest-reducing",
-    "Reduced harvest intensity" = "Harvest-reducing",
-    "Forested peatland rewetting" = "Harvest-reducing",
-    "Coppice conversion" = "Harvest-reducing",
-    "Continuous cover forestry" = "Harvest-reducing",
-    "Structural diversification" = "Harvest-neutral",
-    "Species diversification" = "Harvest-neutral",
-    "Fuel management" = "Harvest-neutral", "Peatland rewetting" = "Harvest-neutral",
-    "Protected afforestation" = "Harvest-neutral",
-    "Productive afforestation" = "Supply-positive", "Reforestation" = "Supply-positive",
-    "Site fertilisation" = "Supply-positive", "Agroforestry" = "Supply-positive")
+  # Harvest class is DERIVED from the sign of the harvest displacement fraction x, which is
+  # what defines the three groups (Table 1: x > 0 harvest-reducing, x = 0 harvest-neutral,
+  # x < 0 harvest-increasing / supply-positive). The previous hardcoded 15-entry map
+  # restated this and had drifted from it for Structural diversification (x = +0.30), which
+  # it called harvest-neutral while Table 1 and the Methods both class it harvest-reducing
+  # -- so panel b counted it in the wrong group. Deriving it means the figure cannot
+  # disagree with Table 1 again. x is verified single-valued per practice and never NA.
+  practice_type_map_v2 <- local({
+    .a <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
+    .a <- .a[as.logical(.a$is_anchor), ]
+    .x <- tapply(.a$harvest_displacement, .a$practice, function(v) {
+      if (length(unique(v)) != 1) stop("harvest_displacement not single-valued for ", v[1])
+      v[1]
+    })
+    if (anyNA(.x)) stop("NA harvest_displacement for: ",
+                        paste(names(.x)[is.na(.x)], collapse = ", "))
+    setNames(ifelse(.x > 0, "Harvest-reducing",
+             ifelse(.x == 0, "Harvest-neutral", "Supply-positive")), names(.x))
+  })
 
   covered_practices <- union(unique(eng("../params/scheme_coverage.csv")$practice), "Agroforestry")
 
