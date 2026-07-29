@@ -65,8 +65,7 @@ prop_ns_add   <- ifelse(eb, pmax(0, 1 - sg$L_prop - sg$T_prop),
 sg$gap_add  <- (scheme_ns_add - prop_ns_add) / scheme_ns_add
 sg$gap_mult <- sg$integrity_gap_pct
 
-wmean <- function(x, w) { ok <- !is.na(x) & !is.na(w) & w > 0
-  if (!any(ok)) return(NA_real_); sum(x[ok] * w[ok]) / sum(w[ok]) }
+source("engine/R/_utils.R")   # shared wmean
 scheme_cmp <- do.call(rbind, lapply(split(sg, sg$scheme), function(d) data.frame(
   scheme = d$scheme[1], scheme_name = d$scheme_name[1],
   is_figure_scheme = !isTRUE(d$exclude_figures[1]),

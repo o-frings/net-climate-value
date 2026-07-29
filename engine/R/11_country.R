@@ -15,7 +15,7 @@ efda <- as.data.frame(readRDS("data/processed/efda_country_summary.rds"))
 stopifnot(all(c("country_root", "forest_kha", "lambda_full",
                 "lambda_pre2018", "lambda_post2018") %in% names(efda)))
 
-wm <- function(x, w) { ok <- !is.na(x) & !is.na(w); sum(x[ok] * w[ok]) / sum(w[ok]) }
+wm <- function(x, w) wmean(x, w, "country disturbance weighting")
 country_disturbance <- do.call(rbind, lapply(split(efda, efda$country_root), function(d) {
   data.frame(
     country         = d$country_root[1],

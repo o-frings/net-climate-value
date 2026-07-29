@@ -43,7 +43,6 @@ ncv <- do.call(rbind, lapply(seq_len(nrow(anc)), function(i) {
 write.csv(ncv, "engine/output/href_ncv.csv", row.names = FALSE)
 
 # --- (2) scheme integrity gaps by H_ref --------------------------------------
-wmean <- function(x, w) { ok <- !is.na(x) & w > 0; if (!any(ok)) NA_real_ else sum(x[ok]*w[ok])/sum(w[ok]) }
 rows <- list()
 for (k in seq_len(nrow(coverage))) {
   cv <- coverage[k, ]; sc <- schemes[schemes$scheme_id == cv$scheme_id, ]

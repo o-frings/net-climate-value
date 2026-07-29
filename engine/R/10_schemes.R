@@ -147,8 +147,6 @@ rownames(scheme_decomp) <- NULL
 write.csv(scheme_decomp, "engine/output/scheme_gap_decomposition.csv", row.names = FALSE)
 
 # --- per-scheme weighted summary (EU schemes; CA_USFP excluded from figure) ----
-wmean <- function(x, w) { ok <- !is.na(x) & !is.na(w) & w > 0
-  if (!any(ok)) return(NA_real_); sum(x[ok] * w[ok]) / sum(w[ok]) }
 fig <- scheme_gaps[!scheme_gaps$exclude_figures, ]
 scheme_summary <- do.call(rbind, lapply(split(fig, fig$scheme), function(d) data.frame(
   scheme = d$scheme[1], scheme_name = d$scheme_name[1],

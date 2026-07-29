@@ -13,6 +13,7 @@
 # =============================================================================
 stopifnot(basename(getwd()) == "analysis")
 cat("=== ENGINE PIPELINE ===\n")
+source("engine/R/_utils.R")                  # shared numeric helpers (wmean)
 source("engine/R/01_data.R")                 # biome calibration (lambda, severity, S_ref, U)
 source("engine/R/02_model.R")                # equations: leakage L, temporality T, x
 source("engine/R/03_buffer.R")               # empirical TVaR99 buffer (bootstrap)
