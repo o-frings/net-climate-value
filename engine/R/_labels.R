@@ -6,12 +6,16 @@
 # 15_figure_data.R. No analysis here — string/label construction only.
 # =============================================================================
 
-CONIFER_SPECIES <- c("Maritime pine", "Mixed conifers", "Norway spruce",
-                     "Scots pine", "Sitka spruce", "Native pinewood")
-BROADLEAF_SPECIES <- c("Chestnut/oak", "Climate-adapted mix", "Cork oak",
-                       "Eucalyptus", "Holm oak", "Mixed broadleaves",
-                       "Mixed species", "Native broadleaves", "Old growth",
-                       "Beech/oak", "Productive oak/beech")
+# Species -> forest type is read from practices.csv, the parameter source of truth that
+# already carries a forest_type column. The previous hardcoded CONIFER_SPECIES /
+# BROADLEAF_SPECIES lists duplicated it and defaulted anything unlisted to broadleaf, so a
+# newly added conifer or a misspelled species was silently mislabelled in every bar label.
+# Verified identical to those lists for every species in practices.csv.
+.SPECIES_FT <- local({
+  p <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
+  p <- p[!duplicated(p$species), ]
+  setNames(p$forest_type, p$species)
+})
 BIOME_ABBREV <- c(Boreal = "Bor", Temperate = "Tem",
                   Temperate_UK = "Tem-UK", Mediterranean = "Med")
 FOREST_TYPE_ABBREV <- c(broadleaf = "BL", conifer = "CF")
@@ -28,11 +32,13 @@ SECONDARY_BLCF_VARIANTS <- list(
 forest_type_from_species <- function(species) {
   if (length(species) > 1)
     return(vapply(species, forest_type_from_species, character(1), USE.NAMES = FALSE))
-  if (is.na(species))                          return("broadleaf")
-  if (species %in% c("broadleaf", "conifer"))  return(species)
-  if (species %in% CONIFER_SPECIES)            return("conifer")
-  if (species %in% BROADLEAF_SPECIES)          return("broadleaf")
-  "broadleaf"                                  # non-tree (peatland) default
+  if (is.na(species)) stop("forest_type_from_species: NA species")
+  if (species %in% c("broadleaf", "conifer")) return(species)
+  # %in% names(), not [[ ]] with an is.null() guard: [[ on a named character vector
+  # errors on a missing name rather than returning NULL, so such a guard never fires.
+  if (!species %in% names(.SPECIES_FT))
+    stop("forest_type_from_species: species not in practices.csv: '", species, "'")
+  .SPECIES_FT[[species]]
 }
 
 is_secondary_variant <- function(practice, species) {

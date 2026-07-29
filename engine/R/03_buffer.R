@@ -22,7 +22,14 @@ cat("[03_buffer] correlation-limited empirical TVaR99 bootstrap from EFDA...\n")
 .need <- function(p) { if (!file.exists(p)) stop("MISSING input: ", p); p }
 .mcv  <- setNames(read.csv(.need("engine/params/model_constants.csv"))$value,
                   read.csv("engine/params/model_constants.csv")$name)
-.k <- function(n) { v <- .mcv[[n]]; if (is.null(v)||is.na(v)) stop("missing const ",n); unname(v) }
+# Same as .const in 02_model: .mcv is a named atomic vector, so [[ errors before an
+# is.null() guard can fire. Check membership so the message is the intended one.
+.k <- function(n) {
+  if (!n %in% names(.mcv)) stop("missing const ", n)
+  v <- .mcv[[n]]
+  if (is.na(v)) stop("const is NA: ", n)
+  unname(v)
+}
 
 # biome x forest-type vulnerability R (Marinelli 2026 fitted ratios)
 ft_R <- read.csv(.need("engine/params/forest_type_R.csv"), stringsAsFactors = FALSE)

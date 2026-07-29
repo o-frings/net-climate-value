@@ -40,6 +40,11 @@ local({
       # The gap to med_area (NCV-adjusted) is the over-crediting, in land terms.
       booked_area = gross_area_Mha
     )
+  # An unlabelled scenario would carry NA through the scn_meta join below into the plot's
+  # ordering and colour, rather than announcing itself.
+  if (anyNA(area_stats$scn_label))
+    stop("fig5: scenario(s) missing from scn_labels: ",
+         paste(unique(area_stats$scenario[is.na(area_stats$scn_label)]), collapse = ", "))
 
   # Order by MC median (highest median -> y_num 1). FIX vs the legacy figure: the
   # old axis used breaks = y_num but labels = levels() (a different ordering), so

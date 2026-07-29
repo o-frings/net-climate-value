@@ -21,8 +21,15 @@ MC <- setNames(.MC_df$value, .MC_df$name)            # model constants
 LE  <- .pp("leakage_elasticities.csv")               # biome x product elasticities
 PPW <- .pp("practice_product_weights.csv")           # practice -> SL/PW/WF weights
 
-.const <- function(nm) { v <- MC[[nm]]
-  if (is.null(v) || is.na(v)) stop("model constant not found: ", nm); unname(v) }
+# MC is a named atomic vector, so MC[[missing]] errors with "subscript out of bounds"
+# before an is.null() guard could ever fire. Check membership so the named message
+# actually reaches the caller.
+.const <- function(nm) {
+  if (!nm %in% names(MC)) stop("model constant not found: ", nm)
+  v <- MC[[nm]]
+  if (is.na(v)) stop("model constant is NA: ", nm)
+  unname(v)
+}
 
 # --- leakage ------------------------------------------------------------------
 # Single product-class replacement ratio (manuscript Eq rho_rep).

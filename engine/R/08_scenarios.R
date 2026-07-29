@@ -91,12 +91,17 @@ ns_draws <- function(practice) {
   sp <- d$species[1]; d$net_share[d$species == sp]
 }
 
+.floor_hits <- 0L; .floor_n <- 0L
 area_today <- do.call(rbind, lapply(names(scenarios), function(nm) {
   s <- scenarios[[nm]]; s <- s[s$eu_area_ha > 0, ]
   area_mc <- NULL
   for (p in unique(s$practice)) {
     ns <- ns_draws(p); if (is.null(ns)) next
     area_p <- sum(s$eu_area_ha[s$practice == p])      # total area for practice (all biomes)
+    # The 0.02 floor regularises the 1/x singularity, so it truncates the right tail
+    # of the area distribution. Count how often it binds: a reader otherwise cannot
+    # tell whether area_p95 is data or the floor.
+    .floor_hits <<- .floor_hits + sum(ns < 0.02); .floor_n <<- .floor_n + length(ns)
     contrib <- area_p / pmax(ns, 0.02)
     area_mc <- if (is.null(area_mc)) contrib else area_mc + contrib
   }
@@ -112,6 +117,8 @@ rownames(area_today) <- NULL
 write.csv(area_today, "engine/output/scenario_area_today.csv", row.names = FALSE)
 cat(sprintf("[08_scenarios] OK — 6 scenarios; NCV-adjusted area today %.0f-%.0f Mha (target %.0f MtCO2/yr)\n",
             min(area_today$area_mean), max(area_today$area_mean), CRCF_TARGET_MT))
+cat(sprintf("[08_scenarios] 2%% net-share floor bound on %d of %d practice-draws (%.3f%%); above zero it truncates the upper area tail\n",
+            .floor_hits, .floor_n, 100 * .floor_hits / max(.floor_n, 1)))
 
 # --- Foregone-harvest / market-saturation check (Murray phi at EU scale) --------
 # The per-project leakage rate is the marginal (phi->0) MAXIMUM (02_model); a

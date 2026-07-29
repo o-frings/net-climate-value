@@ -31,9 +31,16 @@ local({
 
   # ─── Panel a: butterfly decomposition (medians, non-secondary variants) ───
   build_decomp <- function(mc_data, practices_filter = NULL) {
-    d <- mc_data %>% mutate(ptype = practice_type_map_v2[practice]) %>% filter(!is.na(ptype))
-    d <- d %>% filter(as.logical(is_anchor))   # one representative variant per practice
+    # Restrict to the practices this panel covers FIRST, then require every survivor to
+    # be classified. The old order put filter(!is.na(ptype)) first, which conflated a
+    # deliberate exclusion (Short-rotation plantation, not scheme-covered) with an
+    # unmapped practice, so a newly added practice would vanish from the panel silently.
+    d <- mc_data %>% filter(as.logical(is_anchor))
     if (!is.null(practices_filter)) d <- d %>% filter(practice %in% practices_filter)
+    d <- d %>% mutate(ptype = practice_type_map_v2[practice])
+    if (anyNA(d$ptype))
+      stop("fig3: unclassified practice(s): ",
+           paste(unique(d$practice[is.na(d$ptype)]), collapse = ", "))
     d %>%
       median_draw(c("ptype", "practice", "biome", "species")) %>%
       filter(!is_secondary_variant(practice, species)) %>%
