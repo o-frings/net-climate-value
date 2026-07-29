@@ -108,6 +108,9 @@ files <- files[!grepl("_(Temperate|Mediterranean)\\.rds$", files)]
 
 # severity + U + dominant biome per country (area-weighted across any sub-zones)
 efda_sum <- as.data.frame(readRDS(.need("data/processed/efda_country_summary.rds")))
+# forest_kha weights the dominant-biome choice below, which fixes c and R for a whole
+# country bootstrap. An NA would silently become zero weight, so require completeness.
+if (anyNA(efda_sum$forest_kha)) stop("efda_country_summary: NA forest_kha")
 gru_c    <- as.data.frame(readRDS(.need("data/processed/gruenig_country_uplift_factors.rds")))
 sev_by_country <- tapply(seq_len(nrow(efda_sum)), efda_sum$country_root, function(ix)
   sum(efda_sum$forest_kha[ix] * efda_sum$severity[ix]) / sum(efda_sum$forest_kha[ix]))
@@ -115,7 +118,7 @@ gru45 <- gru_c[gru_c$scen == "RCP4.5", ]
 U50_by_country <- tapply(gru45$U_50, gru45$country, mean)   # avg if >1 row
 # Dominant biome per country (by forest area) selects the single c and R for the
 # whole-country bootstrap — matches biome_of() in 26_empirical_buffer.R.
-.cb <- aggregate(forest_kha ~ country_root + biome, efda_sum, sum, na.rm = TRUE)
+.cb <- aggregate(forest_kha ~ country_root + biome, efda_sum, sum)
 .cb <- .cb[order(.cb$country_root, -.cb$forest_kha), ]
 dom_biome <- setNames(.cb$biome[!duplicated(.cb$country_root)],
                       .cb$country_root[!duplicated(.cb$country_root)])

@@ -20,7 +20,8 @@ YRS <- 1986:2023
 
 # per-country buffer b (mean TVaR99_H40 over forest types)
 cbr <- read.csv("engine/output/clean_buffer_rates.csv", stringsAsFactors = FALSE)
-b_by_country <- tapply(cbr$b_TVaR99_H40, cbr$country, mean, na.rm = TRUE)
+if (anyNA(cbr$b_TVaR99_H40)) stop("clean_buffer_rates: NA b_TVaR99_H40")
+b_by_country <- tapply(cbr$b_TVaR99_H40, cbr$country, mean)
 
 # biome weights for the mixed_reducing scenario (CRCF area per biome)
 scp <- read.csv("engine/output/scenario_practices.csv", stringsAsFactors = FALSE)
@@ -44,7 +45,7 @@ for (f in files) {
   ser[[cn]] <- d$lambda_natural
   meta[[cn]] <- list(biome = bm, cc = c_by_biome[[bm]], sev = sev_by_country[[cn]],
                      U50 = U50_by_country[[cn]], b = b_by_country[[cn]],
-                     fkha = sum(efda_sum$forest_kha[efda_sum$country_root == cn], na.rm = TRUE))
+                     fkha = sum(efda_sum$forest_kha[efda_sum$country_root == cn]))
 }
 cn_all <- names(ser); nC <- length(cn_all)
 
@@ -75,7 +76,16 @@ for (bm in names(biome_weights)) { inb <- biomes_c == bm
 w <- w / sum(w)
 
 tv99 <- function(x) mean(x[x >= quantile(x, 0.99)])
-div_ratio_K <- function(S) { wS <- w[S]; if (sum(wS) <= 0) return(NA_real_)
+# Countries whose dominant biome carries no CRCF scenario weight (Temperate_UK: Ireland
+# and the United Kingdom) sit in the enrolment universe with w = 0, so a subset drawn
+# entirely from them has no positive weight and yields no ratio. Those draws are excluded
+# from the mean below; count them rather than dropping them invisibly, because it means
+# the small-K points -- K = 1 above all, where the figure asserts div_ratio ~ 1 -- average
+# over fewer than n_draw subsets.
+.n_zero_w <- sum(w <= 0)
+.dropped  <- 0L
+div_ratio_K <- function(S) { wS <- w[S]
+  if (sum(wS) <= 0) { .dropped <<- .dropped + 1L; return(NA_real_) }
   wS <- wS / sum(wS); tv99(as.vector(loss[, S, drop = FALSE] %*% wS)) / sum(wS * b_c[S]) }
 
 set.seed(7); n_draw <- 300
@@ -88,6 +98,10 @@ buildup <- rbind(
   data.frame(K = seq_len(nC), div_ratio = rand,   ordering = "Random enrolment"),
   data.frame(K = seq_len(nC), div_ratio = greedy, ordering = "Largest forest nations first"))
 write.csv(buildup, "engine/output/pool_buildup.csv", row.names = FALSE)
+
+if (.dropped > 0)
+  cat(sprintf("[12_pool_buildup] %d of %d countries carry zero scenario weight (dominant biome absent from the CRCF mix); %d random subsets had no positive weight and are excluded from the div_ratio means (mostly K=1)\n",
+              .n_zero_w, nC, .dropped))
 
 asym <- rand[nC]
 cat(sprintf("[12_pool_buildup] OK — %d countries, n_mc=%d. full-pool div_ratio=%.2f; within 10%% at K=%d (random)/%d (largest-first)\n",

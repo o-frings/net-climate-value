@@ -44,7 +44,8 @@ uplift_traj <- function(biome, rcp) {
 # --- per country x forest_type: buffer-vs-uplift interpolation -----------------
 set.seed(TRAJ_SEED)
 efda_sum2 <- as.data.frame(readRDS("data/processed/efda_country_summary.rds"))
-fkha_by_country <- tapply(efda_sum2$forest_kha, efda_sum2$country_root, sum, na.rm = TRUE)
+if (anyNA(efda_sum2$forest_kha)) stop("efda_country_summary: NA forest_kha")
+fkha_by_country <- tapply(efda_sum2$forest_kha, efda_sum2$country_root, sum)
 
 # max uplift across biomes/RCPs sets the grid ceiling
 u_ceiling <- max(unlist(U100))
