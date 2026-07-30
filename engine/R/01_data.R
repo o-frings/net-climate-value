@@ -74,3 +74,38 @@ dir.create("engine/output", showWarnings = FALSE, recursive = TRUE)
 write.csv(biome_data, "engine/output/derived_biome_params.csv", row.names = FALSE)
 cat(sprintf("[clean_01_data] OK — %d biomes:\n", nrow(biome_data)))
 print(biome_data[, c("biome","lambda_obs","severity","S_ref","U_50","U_50_rcp85")])
+
+# --- forest-type composition per biome ----------------------------------------
+# Derived here from the sourced per-country areas in
+# engine/params/forest_type_area_shares.csv (Forest Europe 2025 SoEF annex, Table 9)
+# rather than stated as a literal, so the parameter file stays the single source.
+#
+# "Mixed" is allocated proportionally to the two dominated classes, which reduces
+# exactly to conifer_share = C / (C + B): distributing M in ratio C:B gives
+# [C + M*C/(C+B)] / (C+B+M) = C/(C+B). The mixed column therefore does not enter,
+# and countries whose mixed cell is blank (Bulgaria, United Kingdom) stay usable.
+#
+# Country -> biome and the aggregation weight both come from the EFDA summary, so this
+# matches how biome buffers are weighted elsewhere in the engine.
+.fts <- read.csv(.need("engine/params/forest_type_area_shares.csv"), stringsAsFactors = FALSE)
+.fts$conifer_share <- .fts$area_conifer_kha / (.fts$area_conifer_kha + .fts$area_broadleaf_kha)
+.efda_ft <- aggregate(forest_kha ~ country_root + biome, efda, sum)
+.ft <- merge(.efda_ft, .fts[, c("country", "conifer_share")],
+             by.x = "country_root", by.y = "country", all.x = TRUE)
+forest_type_shares <- do.call(rbind, lapply(sort(unique(.ft$biome)), function(b) {
+  d <- .ft[.ft$biome == b, ]
+  g <- d[!is.na(d$conifer_share), ]
+  if (!nrow(g)) stop("no forest-type composition for any country in biome ", b)
+  data.frame(biome = b,
+             conifer_share = sum(g$conifer_share * g$forest_kha) / sum(g$forest_kha),
+             area_coverage = sum(g$forest_kha) / sum(d$forest_kha),
+             n_countries = nrow(g), n_total = nrow(d),
+             missing = paste(d$country_root[is.na(d$conifer_share)], collapse = ";"),
+             stringsAsFactors = FALSE)
+}))
+write.csv(forest_type_shares, "engine/output/forest_type_shares.csv", row.names = FALSE)
+# Report the coverage gap rather than letting an incomplete weighted mean pass silently.
+for (i in seq_len(nrow(forest_type_shares))) with(forest_type_shares[i, ],
+  cat(sprintf("[clean_01_data] forest type %-14s conifer %.1f%% (%d/%d countries, %.0f%% of area)%s\n",
+              biome, 100 * conifer_share, n_countries, n_total, 100 * area_coverage,
+              if (nzchar(missing)) paste0(" — no data: ", missing) else "")))
