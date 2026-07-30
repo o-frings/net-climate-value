@@ -88,17 +88,42 @@ for (k in seq_len(nrow(coverage))) {
 }
 scheme_gaps <- do.call(rbind, rows); rownames(scheme_gaps) <- NULL
 scheme_gaps$joint_weight <- scheme_gaps$practice_weight * scheme_gaps$ft_weight
-# The "missing -> equal" weight default is the dominant regime, not an edge case, so
-# report how many cells it covers rather than leaving it invisible in the weighting.
-.wdef <- sum(is.na(coverage$practice_weight))
-if (.wdef > 0)
-  cat(sprintf("[10_schemes] weight default applied: %d of %d scheme_coverage rows have NA practice_weight (treated as equal)\n",
-              .wdef, nrow(coverage)))
+# Where practice_weight is NA the cells are weighted equally. Report this per scheme, not
+# as a raw row count: of the NA rows, CA_USFP's are excluded from the figures and PLC has a
+# single covered practice (so there is nothing to weight and NA is correct by construction).
+# Equal weighting therefore only binds where a figure scheme has >1 practice and no weights.
+.cvx <- merge(coverage, schemes[, c("scheme_id", "exclude_figures")], by = "scheme_id")
+.defaulted <- vapply(split(.cvx, .cvx$scheme_id), function(d)
+  !isTRUE(d$exclude_figures[1]) && nrow(d) > 1 && all(is.na(d$practice_weight)), logical(1))
+if (any(.defaulted))
+  cat(sprintf("[10_schemes] practice weights defaulted to equal for %s (no per-practice split available); sourced for the rest\n",
+              paste(names(.defaulted)[.defaulted], collapse = ", ")))
 # decomposition identity: deltas sum to (scheme_net - proposed_net) per cell
 .dchk <- with(scheme_gaps,
               max(abs((delta_L + delta_T + delta_b) - (scheme_net - proposed_net))))
 if (.dchk > 1e-10) stop("scheme gap decomposition identity broken: ", .dchk)
 write.csv(scheme_gaps, "engine/output/scheme_gaps.csv", row.names = FALSE)
+
+# --- how much could the practice weighting move each scheme's gap? ---------------
+# A weighted mean is bounded by the min and max of the values it averages, so the span of
+# a scheme's per-practice gaps bounds any weighting choice exactly, with no assumption.
+# Reported so the equal-weighting default above is visible as a range, not a point.
+.fgw <- scheme_gaps[!scheme_gaps$exclude_figures & scheme_gaps$joint_weight > 0, ]
+scheme_weight_bound <- do.call(rbind, lapply(split(.fgw, .fgw$scheme), function(d) {
+  pp <- tapply(d$integrity_gap_pct, d$practice, mean)
+  data.frame(scheme = d$scheme[1], scheme_name = d$scheme_name[1],
+             gap_in_use = wmean(d$integrity_gap_pct, d$joint_weight, "scheme gap"),
+             gap_min_practice = min(pp), gap_max_practice = max(pp),
+             n_practices = length(pp),
+             weights_defaulted = unname(.defaulted[d$scheme[1]]),
+             stringsAsFactors = FALSE)
+}))
+rownames(scheme_weight_bound) <- NULL
+write.csv(scheme_weight_bound, "engine/output/scheme_weight_bound.csv", row.names = FALSE)
+for (i in seq_len(nrow(scheme_weight_bound))) with(scheme_weight_bound[i, ],
+  if (isTRUE(weights_defaulted))
+    cat(sprintf("[10_schemes] %-4s gap %.1f%% on equal weights; any weighting lies in %.1f-%.1f%% across its %d practices\n",
+                scheme, 100 * gap_in_use, 100 * gap_min_practice, 100 * gap_max_practice, n_practices)))
 
 # --- per-draw integrity-gap MC (restores fig3c boxplot distribution) ----------
 # Legacy pert-adjustment method (15_integrity_gap_sensitivity.R): perturb each

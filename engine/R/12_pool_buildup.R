@@ -75,22 +75,31 @@ for (bm in names(biome_weights)) { inb <- biomes_c == bm
   if (any(inb)) w[inb] <- biome_weights[[bm]] * fkha_c[inb] / sum(fkha_c[inb]) }
 w <- w / sum(w)
 
+# Restrict the enrolment universe to countries that actually carry pool weight. A country
+# whose dominant biome is absent from the CRCF practice mix (Temperate_UK: Ireland and the
+# United Kingdom) gets w = 0, and leaving it in meant "K countries" counted members that
+# contribute nothing: subsets drawn entirely from them had no positive weight and were
+# dropped from the mean, which bit hardest at K = 1 (P = 2/31) -- exactly where the figure
+# asserts div_ratio ~ 1 for a single country. Excluding them makes K mean what it says.
+.keep <- w > 0
+if (!any(.keep)) stop("pool buildup: no country carries positive weight")
+if (sum(!.keep) > 0)
+  cat(sprintf("[12_pool_buildup] excluding %d of %d countries with zero pool weight (dominant biome absent from the CRCF mix): %s\n",
+              sum(!.keep), nC, paste(cn_all[!.keep], collapse = ", ")))
+cn_all <- cn_all[.keep]; nC <- length(cn_all)
+loss <- loss[, .keep, drop = FALSE]
+w <- w[.keep] / sum(w[.keep])
+b_c <- b_c[.keep]; fkha_c <- fkha_c[.keep]; biomes_c <- biomes_c[.keep]
+
 tv99 <- function(x) mean(x[x >= quantile(x, 0.99)])
-# Countries whose dominant biome carries no CRCF scenario weight (Temperate_UK: Ireland
-# and the United Kingdom) sit in the enrolment universe with w = 0, so a subset drawn
-# entirely from them has no positive weight and yields no ratio. Those draws are excluded
-# from the mean below; count them rather than dropping them invisibly, because it means
-# the small-K points -- K = 1 above all, where the figure asserts div_ratio ~ 1 -- average
-# over fewer than n_draw subsets.
-.n_zero_w <- sum(w <= 0)
-.dropped  <- 0L
 div_ratio_K <- function(S) { wS <- w[S]
-  if (sum(wS) <= 0) { .dropped <<- .dropped + 1L; return(NA_real_) }
+  # Every remaining country carries positive weight, so an empty-weight subset is a fault.
+  if (sum(wS) <= 0) stop("div_ratio: subset with no positive weight")
   wS <- wS / sum(wS); tv99(as.vector(loss[, S, drop = FALSE] %*% wS)) / sum(wS * b_c[S]) }
 
 set.seed(7); n_draw <- 300
 rand <- vapply(seq_len(nC), function(K) mean(replicate(if (K == nC) 1 else n_draw,
-  div_ratio_K(sample(nC, K))), na.rm = TRUE), numeric(1))
+  div_ratio_K(sample(nC, K)))), numeric(1))
 ordg <- order(-w)
 greedy <- vapply(seq_len(nC), function(K) div_ratio_K(ordg[seq_len(K)]), numeric(1))
 
@@ -98,10 +107,6 @@ buildup <- rbind(
   data.frame(K = seq_len(nC), div_ratio = rand,   ordering = "Random enrolment"),
   data.frame(K = seq_len(nC), div_ratio = greedy, ordering = "Largest forest nations first"))
 write.csv(buildup, "engine/output/pool_buildup.csv", row.names = FALSE)
-
-if (.dropped > 0)
-  cat(sprintf("[12_pool_buildup] %d of %d countries carry zero scenario weight (dominant biome absent from the CRCF mix); %d random subsets had no positive weight and are excluded from the div_ratio means (mostly K=1)\n",
-              .n_zero_w, nC, .dropped))
 
 asym <- rand[nC]
 cat(sprintf("[12_pool_buildup] OK — %d countries, n_mc=%d. full-pool div_ratio=%.2f; within 10%% at K=%d (random)/%d (largest-first)\n",
