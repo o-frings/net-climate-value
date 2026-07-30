@@ -21,7 +21,7 @@ H_perm       <- .const("H_perm")   # from 02_model.R (sourced model constant)
 # is a non-accrual handled by ex-post verification of realised Q (lower Q), not a
 # reversal the buffer should price; an extra floor would partly double-count Q and
 # rested on expert estimates from per-seedling mortality (wrong level). See
-# PARAM_SOURCING_AUDIT.md (establishment_floor + JRC scope).
+# docs/audits/PARAM_SOURCING_AUDIT.md (establishment_floor + JRC scope).
 
 # --- biome-level buffer = forest-area-weighted mean of per-country buffers ----
 # Each EFDA zone (incl. France/Italy sub-zones) carries its whole-country buffer
