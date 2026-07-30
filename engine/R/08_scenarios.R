@@ -19,47 +19,74 @@ base       <- read.csv("engine/params/crcf_base_practices.csv", stringsAsFactors
 practices  <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
 mc         <- readRDS("engine/output/mc_results.rds")
 
-# Sync CRCF base rates to the anchor rates in practices.csv (post-Chiti override)
-anchors <- practices[as.logical(practices$is_anchor), ]
-for (i in seq_len(nrow(base))) {
-  a <- anchors[anchors$practice == base$practice[i], ]
-  if (nrow(a) == 1 && a$rate != base$rate[i]) base$rate[i] <- a$rate
-}
-
 # EU forest area shares per biome (Senf & Seidl; exclude Temperate_UK)
 .senf <- as.data.frame(readRDS("data/processed/senf_biome_rates.rds"))
 .senf <- .senf[.senf$biome != "Temperate_UK", ]
 BIOME_FOREST_SHARES <- setNames(.senf$forest_kha, .senf$biome) / sum(.senf$forest_kha)
 
-# practice -> plausible biomes (from practices.csv, exclude Temperate_UK)
-PRACTICE_BIOMES <- tapply(practices$biome, practices$practice,
-                          function(b) unique(b[b != "Temperate_UK"]))
+# --- cell definitions, all read from practices.csv (no literals) ----------------
+# A scenario cell is practice x biome x forest_type, the same grain as the MC draws and
+# the buffer trajectories. The old code collapsed both of the latter two: it kept a
+# practice-level rate (the sync was skipped whenever a practice had two anchor rows) and
+# left forest type to be guessed downstream by a first-row pick. Every cell here instead
+# carries its own sourced rate.
+.pc <- practices[practices$biome != "Temperate_UK", ]
+.cellkey <- function(p, b, f) paste(p, b, f, sep = "\r")
+if (anyDuplicated(.cellkey(.pc$practice, .pc$biome, .pc$forest_type)))
+  stop("practices.csv: duplicate practice x biome x forest_type cell")
+CELL_RATE <- setNames(.pc$rate, .cellkey(.pc$practice, .pc$biome, .pc$forest_type))
+# forest types that actually exist for a given practice x biome (varies by biome: e.g.
+# extended rotation is conifer-only in Boreal and Mediterranean but both in Temperate)
+PRACTICE_BIOME_FTS <- tapply(.pc$forest_type,
+                             list(.pc$practice, .pc$biome), function(x) unique(x))
+PRACTICE_BIOMES <- tapply(.pc$biome, .pc$practice, unique)
+# conifer share per biome, derived in 01_data.R from the sourced SoEF areas in
+# engine/params/forest_type_area_shares.csv
+CONIFER_SHARE <- setNames(forest_type_shares$conifer_share, forest_type_shares$biome)
 
-# --- factory: scale area per harvest class to target, split across biomes -------
+# --- factory: expand to cells, then scale area per harvest class to target -------
+# Scaling happens AFTER expansion because the rate is now per cell, so the class tonnage
+# is sum(rate_cell * area_cell) and cannot be evaluated at practice level.
 build_crcf_scenario <- function(target_mt, class_weights) {
-  out <- base
+  expanded <- do.call(rbind, lapply(seq_len(nrow(base)), function(i) {
+    row <- base[i, ]
+    bs <- PRACTICE_BIOMES[[row$practice]]
+    if (is.null(bs)) stop("no biomes in practices.csv for: ", row$practice)
+    bsh <- BIOME_FOREST_SHARES[bs]; bsh <- bsh / sum(bsh)
+    do.call(rbind, lapply(seq_along(bs), function(j) {
+      bm  <- bs[j]
+      fts <- PRACTICE_BIOME_FTS[[row$practice, bm]]
+      if (is.null(fts)) stop("no forest type for ", row$practice, " / ", bm)
+      cs <- CONIFER_SHARE[[bm]]
+      if (is.na(cs)) stop("no conifer share for biome ", bm)
+      # split the biome's area between the forest types present, by the biome composition;
+      # normalising means a practice available as only one type takes that biome's whole
+      # area rather than silently losing the other type's share.
+      fw <- ifelse(fts == "conifer", cs, 1 - cs); fw <- fw / sum(fw)
+      do.call(rbind, lapply(seq_along(fts), function(k) {
+        key <- .cellkey(row$practice, bm, fts[k])
+        if (!key %in% names(CELL_RATE)) stop("no rate for cell ", gsub("\r", "/", key))
+        r <- row
+        r$biome       <- bm
+        r$forest_type <- fts[k]
+        r$rate        <- CELL_RATE[[key]]
+        r$eu_area_ha  <- row$eu_area_ha * bsh[j] * fw[k]
+        r
+      }))
+    }))
+  }))
   for (hc in c("Harvest-reducing", "Harvest-neutral", "Harvest-increasing")) {
     key <- c("Harvest-reducing" = "reducing", "Harvest-neutral" = "neutral",
              "Harvest-increasing" = "increasing")[[hc]]
-    idx <- out$harvest_class == hc
-    cur <- sum(out$rate[idx] * out$eu_area_ha[idx] / 1e6)
+    idx <- expanded$harvest_class == hc
+    cur <- sum(expanded$rate[idx] * expanded$eu_area_ha[idx] / 1e6)
     if (cur > 0 && class_weights[[key]] > 0) {
-      out$eu_area_ha[idx] <- out$eu_area_ha[idx] * (target_mt * class_weights[[key]] / cur)
+      expanded$eu_area_ha[idx] <- expanded$eu_area_ha[idx] *
+        (target_mt * class_weights[[key]] / cur)
     } else if (class_weights[[key]] == 0) {
-      out$eu_area_ha[idx] <- 0
+      expanded$eu_area_ha[idx] <- 0
     }
   }
-  expanded <- do.call(rbind, lapply(seq_len(nrow(out)), function(i) {
-    row <- out[i, ]
-    # No Temperate default: a base practice absent from practices.csv would have its
-    # entire EU area silently reassigned to one biome, changing the area headline.
-    bs <- PRACTICE_BIOMES[[row$practice]]
-    if (is.null(bs)) stop("no anchor biomes in practices.csv for: ", row$practice)
-    sh <- BIOME_FOREST_SHARES[bs]; sh <- sh / sum(sh)
-    do.call(rbind, lapply(seq_along(bs), function(j) {
-      r <- row; r$biome <- bs[j]; r$eu_area_ha <- row$eu_area_ha * sh[j]; r
-    }))
-  }))
   expanded$eu_annual_MtCO2 <- expanded$rate * expanded$eu_area_ha / 1e6
   expanded
 }
@@ -78,6 +105,20 @@ scen_tbl <- do.call(rbind, lapply(names(scenarios), function(nm) {
   d <- scenarios[[nm]]; d$scenario <- nm; d }))
 write.csv(scen_tbl, "engine/output/scenario_practices.csv", row.names = FALSE)
 
+# Realised area-weighted conifer share per scenario. The Methods quote these six figures;
+# previously they reflected a first-row forest-type pick per practice, now they are the
+# actual area shares implied by the practice mix and the sourced biome composition.
+scen_conifer <- do.call(rbind, lapply(names(scenarios), function(nm) {
+  d <- scenarios[[nm]]; d <- d[d$eu_area_ha > 0, ]
+  data.frame(scenario = nm,
+             conifer_share = sum(d$eu_area_ha[d$forest_type == "conifer"]) / sum(d$eu_area_ha),
+             stringsAsFactors = FALSE)
+}))
+write.csv(scen_conifer, "engine/output/scenario_conifer_share.csv", row.names = FALSE)
+cat(sprintf("[08_scenarios] area-weighted conifer share by scenario: %s\n",
+            paste(sprintf("%s %.0f%%", scen_conifer$scenario,
+                          100 * scen_conifer$conifer_share), collapse = ", ")))
+
 # --- NCV-adjusted area required today (iteration-level MC aggregation) ----------
 # net_share draws for a scenario CELL (practice x biome), as a 10k-vector ordered by
 # iteration. Area is spread across a practice's biomes by forest-area share, so the
@@ -87,13 +128,14 @@ write.csv(scen_tbl, "engine/output/scenario_practices.csv", row.names = FALSE)
 # harvest-reducing practices, whose Mediterranean cells sit far below their Temperate
 # anchors). Same Jensen argument this file already applies across MC iterations.
 #
-# Species (forest type) within a cell are still collapsed by an equal-weighted per-draw
-# mean. That is the remaining aggregation, and it needs a forest-type area share to do
-# properly -- see D1_DISAGGREGATION_SCOPE.md step 3. Bounded at +-3.5 Mha on the headline.
-ns_draws_cell <- function(practice, biome) {
+# Forest type is now a scenario dimension too, so a cell resolves to one forest type; any
+# remaining multiple species within (practice, biome, forest_type) are averaged per draw.
+.SPECIES_FT <- setNames(practices$forest_type, practices$species)[!duplicated(practices$species)]
+ns_draws_cell <- function(practice, biome, forest_type) {
   d <- mc[mc$practice == practice & mc$biome == biome, ]
+  d <- d[.SPECIES_FT[d$species] == forest_type, ]
   if (nrow(d) == 0)
-    stop("no MC draws for scenario cell: ", practice, " / ", biome)
+    stop("no MC draws for scenario cell: ", practice, " / ", biome, " / ", forest_type)
   sp <- unique(d$species)
   m <- vapply(sp, function(s) {
     v <- d[d$species == s, ]
@@ -107,7 +149,7 @@ area_today <- do.call(rbind, lapply(names(scenarios), function(nm) {
   s <- scenarios[[nm]]; s <- s[s$eu_area_ha > 0, ]
   area_mc <- NULL
   for (i in seq_len(nrow(s))) {                       # one row per practice x biome
-    ns <- ns_draws_cell(s$practice[i], s$biome[i])
+    ns <- ns_draws_cell(s$practice[i], s$biome[i], s$forest_type[i])
     # The 0.02 floor regularises the 1/x singularity, so it truncates the right tail
     # of the area distribution. Count how often it binds: a reader otherwise cannot
     # tell whether area_p95 is data or the floor.
@@ -151,7 +193,7 @@ foregone_tbl <- do.call(rbind, lapply(names(scenarios), function(nm) {
       stop("no harvest displacement x for scenario practice: ", p)
     xp <- x_by_practice[[p]]
     if (is.na(xp) || xp <= 0) next                          # harvest-reducing withdrawal only
-    ns <- ns_draws_cell(p, s$biome[i])
+    ns <- ns_draws_cell(p, s$biome[i], s$forest_type[i])
     G_p <- s$eu_annual_MtCO2[i]                             # face gross contribution (MtCO2/yr)
     fore_mc <- fore_mc + xp * G_p / pmax(ns, 0.02)          # foregone harvest at NCV-adjusted deployment
   }

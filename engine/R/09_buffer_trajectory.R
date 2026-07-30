@@ -108,9 +108,13 @@ write.csv(biome_traj, "engine/output/buffer_biome_trajectory.csv", row.names = F
 
 # --- scenario-level trajectory = CRCF practice-area-weighted biome buffers ------
 scen <- read.csv("engine/output/scenario_practices.csv", stringsAsFactors = FALSE)
+# forest_type now comes with the scenario table from 08 (practice x biome x forest_type).
+# It used to be guessed here as tapply(..., function(x) x[1]) -- the first practices.csv row
+# per practice -- which selected the buffer trajectory by CSV row order, so reordering the
+# parameter file would silently move this figure.
+if (!"forest_type" %in% names(scen))
+  stop("scenario_practices.csv has no forest_type column; 08_scenarios must supply it")
 practices <- read.csv("engine/params/practices.csv", stringsAsFactors = FALSE)
-ft_of_practice <- tapply(practices$forest_type, practices$practice, function(x) x[1])
-scen$forest_type <- ft_of_practice[scen$practice]
 scen <- scen[scen$eu_area_ha > 0 & scen$biome %in% biomes3 & !is.na(scen$forest_type), ]
 btraj_key <- function(rcp, bm, ft) paste(rcp, bm, ft)
 
