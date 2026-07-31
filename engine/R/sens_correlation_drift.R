@@ -18,8 +18,11 @@
 # pool. CROSS-country co-movement is not parameterised by c at all — 12_pool_buildup induces
 # it empirically by drawing SHARED resampled years, so all countries see the same year. What
 # this script measures is that cross-country co-movement. It is therefore the right quantity
-# for the pooling/diversification claim (Fig 4b, ED Fig 4) and for Migliavacca's objection,
-# but it is NOT an estimate of c and must not be substituted for one.
+# for the pooling/diversification claim (Fig 4b, ED Fig 4), but it is NOT an estimate of c
+# and must not be substituted for one. For c itself, see the companion script
+# sens_within_country_correlation.R, which estimates the within-country correlation from
+# per-hexagon EFDA series — that one IS comparable to biome_correlation.csv, and it is the
+# script that answers Migliavacca's objection at the scale his objection names.
 #
 # WHAT THIS DOES. Estimates the observed cross-country correlation of annual natural
 # disturbance rates from the EFDA record and tests whether it has drifted, three ways:

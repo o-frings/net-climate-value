@@ -70,7 +70,10 @@ allowed_na <- list(
   # only the projected scenarios carry p10/p90 (114 rows = 38 years x 3 biomes).
   "buffer_biome_disturbance.csv" = c("rate_p10", "rate_p90"),
   # Sparse long-format stat table: each row populates only its relevant column.
-  "sens_additive_summary.csv" = c("multiplicative", "additive", "spearman_mult_vs_add")
+  "sens_additive_summary.csv" = c("multiplicative", "additive", "spearman_mult_vs_add"),
+  # The pooled "ALL" rows span biomes, which have different assumed c, so there is no
+  # single assumed value to print; inventing a weighted one would fabricate a parameter.
+  "sens_within_country_c_biome.csv" = c("c_assumed", "n_eff_assumed")
 )
 na_bad <- character()
 for (f in list.files(OUT, pattern = "\\.csv$")) {
