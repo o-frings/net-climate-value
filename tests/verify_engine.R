@@ -73,7 +73,10 @@ allowed_na <- list(
   "sens_additive_summary.csv" = c("multiplicative", "additive", "spearman_mult_vs_add"),
   # The pooled "ALL" rows span biomes, which have different assumed c, so there is no
   # single assumed value to print; inventing a weighted one would fabricate a parameter.
-  "sens_within_country_c_biome.csv" = c("c_assumed", "n_eff_assumed")
+  "sens_within_country_c_biome.csv" = c("c_assumed", "n_eff_assumed"),
+  # The calendar-extrapolation rows are not tied to an emission scenario, so they have no
+  # hazard uplift to report; only the hazard-elasticity rows do.
+  "sens_c_trend_projection.csv" = "uplift_U"
 )
 na_bad <- character()
 for (f in list.files(OUT, pattern = "\\.csv$")) {
