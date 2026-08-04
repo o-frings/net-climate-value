@@ -4,34 +4,31 @@
 # Standalone SI analysis (not part of run_engine.R). Run from analysis/:
 #   Rscript engine/R/sens_correlation_drift.R
 #
-# WHY. The buffer treats spatial correlation c as fixed per biome (engine/params/
-# biome_correlation.csv, sourced from Anderegg 2020 rather than fitted here), while only
-# the mean hazard rate gets an RCP uplift. Migliavacca's review point: the mechanism most
-# likely to raise c under climate change — synchronised continental droughts driving
-# simultaneous outbreaks — is exactly why correlation matters, so a fixed c would overstate
-# end-of-century diversification and make the Fig 4 country rates a lower bound rather than
-# a central estimate. c enters the pool only through N_eff = round(1/c), so a drift in c is
-# a drift in how much the pool can diversify.
+# Purpose. The buffer treats spatial correlation c as fixed per biome (engine/params/
+# biome_correlation.csv, sourced from Anderegg 2020 rather than fitted here), while only the
+# mean hazard rate gets an RCP uplift. The mechanism most likely to raise c under climate
+# change — synchronised continental droughts driving simultaneous outbreaks — is also why
+# correlation matters, so a fixed c would overstate end-of-century diversification and make
+# the Fig 4 country rates a lower bound rather than a central estimate. c enters the pool only
+# through N_eff = round(1/c), so a drift in c is a drift in how much the pool can diversify.
 #
-# SCALE — read this before comparing anything here to c. The engine's c is a WITHIN-country
-# parameter: 03_buffer sets K = round(1/c) effective decorrelated CELLS inside one country's
-# pool. CROSS-country co-movement is not parameterised by c at all — 12_pool_buildup induces
-# it empirically by drawing SHARED resampled years, so all countries see the same year. What
-# this script measures is that cross-country co-movement. It is therefore the right quantity
-# for the pooling/diversification claim (Fig 4b, ED Fig 4), but it is NOT an estimate of c
-# and must not be substituted for one. For c itself, see the companion script
+# Scale. The engine's c is a WITHIN-country parameter: 03_buffer sets K = round(1/c) effective
+# decorrelated CELLS inside one country's pool. CROSS-country co-movement is not parameterised
+# by c at all — 12_pool_buildup induces it empirically by drawing SHARED resampled years, so
+# all countries see the same year. What this script measures is that cross-country co-movement.
+# It is therefore the right quantity for the pooling/diversification claim (Fig 4b, ED Fig 4),
+# but it is NOT an estimate of c and must not be substituted for one. For c itself, see
 # sens_within_country_correlation.R, which estimates the within-country correlation from
-# per-hexagon EFDA series — that one IS comparable to biome_correlation.csv, and it is the
-# script that answers Migliavacca's objection at the scale his objection names.
+# per-hexagon EFDA series and IS comparable to biome_correlation.csv.
 #
-# WHAT THIS DOES. Estimates the observed cross-country correlation of annual natural
+# Method. Estimates the observed cross-country correlation of annual natural
 # disturbance rates from the EFDA record and tests whether it has drifted, three ways:
 #   (1) early vs late half, non-overlapping, with a year-block bootstrap CI on the
 #       difference — this is the inferential test;
 #   (2) a moving-window series, descriptive only (overlapping windows share years, so the
 #       slope's nominal p-value would be anticonservative and is deliberately not reported);
-#   (3) correlation against contemporaneous hazard intensity — Migliavacca's mechanism,
-#       i.e. does co-movement rise in high-hazard periods rather than with calendar time.
+#   (3) correlation against contemporaneous hazard intensity, i.e. whether co-movement rises
+#       in high-hazard periods rather than with calendar time.
 #
 # Reported on two bases, because the choice matters and should not be silent:
 #   levels     — correlation of annual rates. Includes any common trend, so a shared
@@ -39,7 +36,7 @@
 #   detrended  — each country's own linear time trend removed first, isolating
 #                synchronised SHOCKS, which is what a bad pool year actually is.
 #
-# ROBUSTNESS. 2017-2023 rates are author-constructed (see the manuscript's disturbance-data
+# Robustness. 2017-2023 rates are author-constructed (see the manuscript's disturbance-data
 # limitation), so every statistic is recomputed on 1986-2016 alone. If a drift appears only
 # with the constructed years it is an artefact of them, and the script says so.
 #

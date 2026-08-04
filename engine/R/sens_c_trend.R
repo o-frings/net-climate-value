@@ -1,57 +1,53 @@
 # =============================================================================
-# sens_c_trend.R  —  should c rise in the future projections, and by how much?
+# sens_c_trend.R  —  does c rise in the future projections, and by how much?
 # =============================================================================
-# Standalone SI analysis (not part of run_engine.R). Run from analysis/, AFTER
+# Standalone SI analysis (not part of run_engine.R). Run from analysis/, after
 # sens_within_country_correlation.R:
 #   Rscript engine/R/sens_c_trend.R
 #
-# THE QUESTION. The engine applies an RCP uplift to the mean hazard lambda but holds the
-# within-country spatial correlation c fixed. Migliavacca's A1 objection is that warming
-# should also SYNCHRONISE losses, so a fixed c overstates end-of-century diversification.
-# sens_within_country_correlation.R established that c is not detectably drifting in calendar
-# time. This script asks the projection question instead: if lambda rises by the amount the
-# engine already assumes, what does the record imply c does?
+# Question. The engine applies an RCP uplift to the mean hazard lambda but holds the
+# within-country spatial correlation c fixed. If warming also synchronises losses, a fixed c
+# overstates end-of-century diversification. sens_within_country_correlation.R shows c is not
+# detectably drifting in calendar time; this script asks the projection question: if lambda
+# rises by the amount the engine already assumes, what does the record imply c does?
 #
-# WHY AN ELASTICITY AND NOT A TIME TREND. Extrapolating a 39-year calendar trend to 2100 is
-# atheoretical and unbounded — nothing ties it to the emission scenario, and the engine's own
-# projection mechanism is the hazard uplift U, not the year. So the primary estimate is the
-# elasticity of correlation to hazard, measured WITHIN each country across non-overlapping
-# time blocks:
+# Elasticity rather than a time trend. Extrapolating a 39-year calendar trend to 2100 is
+# unbounded and unconnected to the emission scenario, and the engine's projection mechanism is
+# the hazard uplift U, not the year. The primary estimate is therefore the elasticity of
+# correlation to hazard, measured within each country across non-overlapping time blocks:
 #     z(rho_block) = a_country + beta * log(lambda_block)
-# using within-country variation only, so no cross-country confounding (biome, size, species
-# mix) enters. beta is then pushed through the engine's own uplift:
+# Within-country variation only, so cross-country differences (biome, size, species mix) do not
+# enter. beta is then applied to the engine's own uplift:
 #     z_future = z_observed + beta * log(1 + U)
-# with U taken from derived_biome_params.csv (U_100 for RCP4.5, U_100_rcp85 for RCP8.5), so
-# the projection is internally consistent with the rest of the model. The calendar-time slope
-# is reported alongside as a descriptive cross-check.
+# with U from derived_biome_params.csv (U_100 for RCP4.5, U_100_rcp85 for RCP8.5), keeping the
+# projection consistent with the rest of the model. The calendar-time slope is reported
+# alongside as a cross-check.
 #
-# WHY FISHER z. A correlation is bounded; a linear trend in rho is not, and extrapolating to
-# 2100 can leave [0,1). Fitting and projecting on z = atanh(rho) and back-transforming keeps
-# every projected c admissible by construction.
+# Fisher z. A correlation is bounded and a linear trend in rho is not, so extrapolating to 2100
+# can leave [0,1). Fitting and projecting on z = atanh(rho) and back-transforming keeps every
+# projected c admissible.
 #
-# INFERENCE — READ THIS BEFORE QUOTING A CI. Countries share the same calendar years, so a
-# common European trend pushes every country's slope the same way at once. A bootstrap over
-# countries treats them as independent and therefore UNDERSTATES the standard error: on the
-# first run it returned a calendar slope of +0.029 z/decade with a CI excluding zero, which
-# would have contradicted the (correctly specified) no-drift result from
-# sens_within_country_correlation.R. Both are reported, but the permutation p-value is the
-# inference to quote: it draws ONE year permutation and applies it to every country, so the
-# null preserves the shared-year dependence. The bootstrap CI is retained only to show the
-# spread across countries and is labelled anticonservative.
+# Inference. Countries share calendar years, so a common European trend moves every country's
+# slope together. A bootstrap over countries treats them as independent and understates the
+# standard error: it puts the calendar slope's interval clear of zero, contradicting the
+# correctly specified no-drift result in sens_within_country_correlation.R. Both are reported;
+# the permutation p-value is the one to quote, since it draws one year permutation and applies
+# it to every country, preserving the shared-year dependence. Bootstrap intervals are retained
+# to show cross-country spread and are labelled anticonservative in the output.
 #
-# TWO MULTIPLIERS, BOTH REPORTED. They answer different questions and must not be conflated:
-#   c_mult_climate_only = c_future / c_observed   — the climate-driven RELATIVE rise. Applied
-#       on top of the assumed c, this keeps the present-day assumption (which the data say is
-#       already conservative) and adds the climate response. The precautionary choice.
-#   c_mult_recalibrated = c_future / c_assumed    — replaces the assumed c with the projected
-#       one outright. Lower, because the assumed c already exceeds the observed one.
+# Two multipliers, reported separately because they answer different questions:
+#   c_mult_climate_only = c_future / c_observed   the climate-driven relative rise. Applied on
+#       top of the assumed c, it keeps the present-day assumption (which the data show is
+#       already conservative) and adds the climate response.
+#   c_mult_recalibrated = c_future / c_assumed    replaces the assumed c with the projected one.
+#       Lower, because the assumed c already exceeds the observed one.
 #
-# HOW FAR TO TRUST THE CALENDAR ROUTE. Extrapolating the fitted slope linearly in z over ten
-# decades implies c ~ 0.57-0.61 by 2100 (N_eff ~ 2), i.e. within-country diversification almost
-# entirely gone. That is far outside anything in the record and rests on a slope fitted to 32
-# years at p = 0.046, so it is an upper bound for stress-testing, not a forecast. The 2050
-# figures are the defensible end of it. sens_c_uplift.R additionally reports the c = 1 (K = 1)
-# case, which bounds the damage no matter what c does.
+# Range of the calendar route. Extrapolating the fitted slope linearly in z over ten decades
+# implies c around 0.5 by 2100 (N_eff about 2), i.e. within-country diversification nearly
+# gone. That is outside anything in the record and rests on a slope fitted to 32 years at
+# p = 0.06, so it is an upper bound for stress-testing rather than a forecast; the 2050 figures
+# are the defensible end. sens_c_uplift.R additionally reports the K = 1 case, which bounds the
+# effect whatever c does.
 #
 # Emits: engine/output/sens_c_trend_country.csv    (per country: elasticity, calendar slope)
 #        engine/output/sens_c_trend_pooled.csv     (pooled slopes + permutation p)

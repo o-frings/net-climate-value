@@ -4,47 +4,43 @@
 # Standalone SI analysis (not part of run_engine.R). Run from analysis/:
 #   Rscript engine/R/sens_within_country_correlation.R
 #
-# WHY THIS AND NOT sens_correlation_drift.R. That script measures BETWEEN-country
-# co-movement, which drives the pooling claim (Fig 4b, ED Fig 4) but is not the parameter
-# Migliavacca's objection names. The engine's c is WITHIN-country: 03_buffer sets
-# K = round(1/c) effective decorrelated CELLS inside one country's bootstrap, so c sets the
-# country-level buffer rate and therefore the headline NCV. This script estimates c at that
-# scale — correlation among sub-national units inside a country — so the comparison against
-# engine/params/biome_correlation.csv is apples to apples, and asks whether it is drifting.
+# Scope. The engine's c is a WITHIN-country parameter: 03_buffer sets K = round(1/c)
+# effective decorrelated cells inside one country's bootstrap, so c sets the country-level
+# buffer rate and therefore the headline NCV. This script estimates c at that scale and tests
+# it for drift. The companion sens_correlation_drift.R measures BETWEEN-country co-movement,
+# which drives the pooling claim (Fig 4b, ED Fig 4) but is a different quantity and is not
+# comparable to engine/params/biome_correlation.csv.
 #
-# DATA. Per-hexagon annual natural-disturbance rates on the JRC 35 km grid, extracted from
-# the EFDA 30 m rasters by ~/efda_scratch/extract_hexagon_series.R (the committed country
-# files are aggregates and cannot support this). Hexagons are the grain the JRC risk model
-# itself uses, so the estimate is directly comparable to their product. Runs on a PARTIAL
-# extraction and reports the coverage, so it can be used before all countries finish.
+# Data. Per-hexagon annual natural-disturbance rates on the JRC 35 km grid, extracted from the
+# EFDA 30 m rasters by scripts/efda_offline/extract_hexagon_series.R; the committed country
+# files are aggregates and cannot support this. Hexagons are the grain the JRC risk model uses,
+# so the estimate is comparable to that product. Runs on a partial extraction and reports the
+# coverage.
 #
-# DESIGN. Per country, mean pairwise correlation across its hexagons, on two bases (raw
-# levels, and after removing each hexagon's own linear trend — levels conflate a shared
-# trend with the synchronised shocks a bad pool year actually is). Drift is a PAIRED
-# comparison across countries (each contributes one early and one late value), which keeps
-# within- from between-country variation. Inference is a permutation of the year labels;
-# the pooled null averages the SAME year permutation across countries, so it preserves the
-# cross-country dependence that would otherwise make the pooled test anticonservative.
-# Two year windows: the full record, and excluding 2017-2023 — those years are
-# author-constructed in EFDA and fall entirely inside the late window, so any rise that
-# survives their removal is not an artefact of them.
+# Design. Per country, mean pairwise correlation across its hexagons, on two bases: raw levels,
+# and after removing each hexagon's own linear trend. Levels conflate a shared trend with the
+# synchronised shocks a bad pool year consists of. Drift is a paired comparison across
+# countries, each contributing one early and one late value, which keeps within- and
+# between-country variation separate. Inference is by permutation of the year labels; the
+# pooled null applies the same year permutation to every country, preserving the cross-country
+# dependence that would otherwise make the pooled test anticonservative. Two year windows: the
+# full record, and excluding 2017-2023, which are author-constructed in EFDA and fall inside
+# the late window.
 #
-# WHY THE BENCHMARK IS LEGITIMATE (checked, because it is easy to get backwards). c is NOT
-# the literal correlation of the engine's own cells: 03_buffer draws its K cells
-# conditionally INDEPENDENTLY given the country-year mean, so simulating that process at
-# c = 0.15-0.25 yields cells whose measured pairwise correlation is only ~0.05, and with the
-# country mean held flat it is ~0. The device is a correlation-limited EQUIVALENT pool — K =
-# round(1/c) independent cells standing in for a large correlated pool — which is valid
-# because for N units with mean pairwise correlation rho, the effective number of independent
-# units tends to 1/rho. So the quantity to compare against c is the observed mean pairwise
-# correlation among sub-national units, which is what this script estimates. Reported with a
-# second estimator (realised variance reduction) because the identity assumes equal
-# variances, which holds for the engine's cells but not for real hexagons.
+# Interpretation of the benchmark. c is not the pairwise correlation of the engine's own cells:
+# 03_buffer draws them conditionally independently given the country-year mean, so that process
+# at c = 0.15-0.25 yields cells correlated about 0.05, and about 0 with the country mean held
+# flat. The construction is a correlation-limited equivalent pool — K = round(1/c) independent
+# cells standing in for a large correlated pool — which holds because the effective number of
+# independent units in a pool of N units with mean pairwise correlation rho tends to 1/rho.
+# The comparable quantity is therefore the observed mean pairwise correlation among
+# sub-national units. A second estimator (realised variance reduction) is reported alongside,
+# because that identity assumes equal variances: true of the engine's cells, not of real
+# hexagons.
 #
-# UNIT MATCHES THE ENGINE. Hexagons are grouped by whole country, which is 03_buffer's own
-# bootstrap unit: it globs efda_country_rates/ and drops the *_Temperate / *_Mediterranean
-# split files, so France and Italy enter as single countries there too (31 files). No
-# bioregion split is applied here for the same reason.
+# Unit. Hexagons are grouped by whole country, matching 03_buffer's bootstrap unit: it globs
+# efda_country_rates/ and drops the *_Temperate / *_Mediterranean split files, so France and
+# Italy enter as single countries there too (31 files). No bioregion split is applied here.
 #
 # Emits: engine/output/sens_within_country_c.csv        (per-country estimates + drift)
 #        engine/output/sens_within_country_c_biome.csv  (pooled vs the assumed c)

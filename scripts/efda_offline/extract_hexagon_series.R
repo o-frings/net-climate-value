@@ -1,11 +1,11 @@
 # Extract per-HEXAGON annual natural-disturbance rates from the EFDA rasters.
 #
-# WHY. The committed artefacts are country-aggregated, so the within-country spatial
+# Purpose. The committed artefacts are country-aggregated, so the within-country spatial
 # correlation c (which sets N_eff = round(1/c) inside 03_buffer's per-country bootstrap,
 # and therefore the country-level buffer and the headline NCV) cannot be estimated or
-# tested for drift from them. Migliavacca's review point is about exactly that parameter.
-# The JRC 35 km hexagons are the natural sub-national unit: they are the grain his own
-# risk model uses, so an estimate on that grid is directly comparable to it.
+# tested for drift from them, and that parameter was queried in review. The JRC 35 km hexagons
+# are the natural sub-national unit: they are the grain the JRC risk model itself uses, so an
+# estimate on that grid is directly comparable to it.
 #
 # Usage (from ~/efda_scratch):  Rscript extract_hexagon_series.R <country_lower> [gpkg]
 # Output: hex_rates/<country>.rds  — hex_id x year long table with lambda_natural

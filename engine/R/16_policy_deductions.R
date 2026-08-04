@@ -1,7 +1,7 @@
 # =============================================================================
 # 16_policy_deductions.R — per-practice x biome deduction rates for policy use
 # =============================================================================
-# Requested by Mirco Migliavacca (JRC) review, 2026-07-28: supply the numbers a
+# Raised in review, 2026-07-28: supply the numbers a
 # methodology could apply as deductions per practice and biome — in particular the
 # market-leakage discount, which the adopted CRCF carbon-farming methodology does
 # not quantify — analogous to how the uncertainty deduction discounts CR-RC_bas.

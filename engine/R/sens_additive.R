@@ -1,7 +1,7 @@
 # =============================================================================
 # sens_additive.R  —  SI robustness: multiplicative vs additive issuance rule
 # =============================================================================
-# Filewod review A1: is the sequential multiplicative rule net_share =
+# Review point A1: is the sequential multiplicative rule net_share =
 # (1-L)(1-T)(1-b) defensible against a simultaneous/additive alternative that
 # subtracts the three rates from one? This script applies the additive rule
 #   sigma_add = max(0, 1 - L - T - b)
