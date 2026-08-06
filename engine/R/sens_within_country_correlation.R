@@ -4,48 +4,33 @@
 # Standalone SI analysis (not part of run_engine.R). Run from analysis/:
 #   Rscript engine/R/sens_within_country_correlation.R
 #
-# Scope. The engine's c is a WITHIN-country parameter: 03_buffer sets K = round(1/c)
-# effective decorrelated cells inside one country's bootstrap, so c sets the country-level
-# buffer rate and therefore the headline NCV. This script estimates c at that scale and tests
-# it for drift. The companion sens_correlation_drift.R measures BETWEEN-country co-movement,
-# which drives the pooling claim (Fig 4b, ED Fig 4) but is a different quantity and is not
-# comparable to engine/params/biome_correlation.csv.
+# The engine's c is WITHIN-country: 03_buffer sets K = round(1/c) decorrelated cells inside one
+# country's bootstrap, so c sets the country-level buffer rate and hence the headline NCV. This
+# estimates c at that scale from per-hexagon EFDA series on the JRC 35 km grid (extracted by
+# scripts/efda_offline/extract_hexagon_series.R; the committed country files are aggregates and
+# cannot identify it). The companion sens_correlation_drift.R measures BETWEEN-country
+# co-movement -- a different quantity, not comparable to biome_correlation.csv.
 #
-# Data. Per-hexagon annual natural-disturbance rates on the JRC 35 km grid, extracted from the
-# EFDA 30 m rasters by scripts/efda_offline/extract_hexagon_series.R; the committed country
-# files are aggregates and cannot support this. Hexagons are the grain the JRC risk model uses,
-# so the estimate is comparable to that product. Runs on a partial extraction and reports the
-# coverage.
+# c is not the pairwise correlation of the engine's own cells: 03_buffer draws them
+# conditionally independently given the country-year mean. It is a correlation-limited
+# equivalent pool, K = round(1/c) independent cells standing in for a large correlated one,
+# valid because effective N tends to 1/rho. So observed mean pairwise correlation is the
+# comparable quantity. A second estimator (realised variance reduction) is reported alongside
+# because that identity assumes equal variances -- true of the engine's cells, not of hexagons.
 #
-# Design. Per country, mean pairwise correlation across its hexagons, on two bases: raw levels,
-# and after removing each hexagon's own linear trend. Levels conflate a shared trend with the
-# synchronised shocks a bad pool year consists of. Drift is a paired comparison across
-# countries, each contributing one early and one late value, which keeps within- and
-# between-country variation separate. Inference is by permutation of the year labels; the
-# pooled null applies the same year permutation to every country, preserving the cross-country
-# dependence that would otherwise make the pooled test anticonservative. Two year windows: the
-# full record, and excluding 2017-2023, which are author-constructed in EFDA and fall inside
-# the late window.
+# Hexagons are grouped by whole country, matching 03_buffer's bootstrap unit (it drops the
+# *_Temperate / *_Mediterranean splits, so France and Italy enter whole there too).
 #
-# Interpretation of the benchmark. c is not the pairwise correlation of the engine's own cells:
-# 03_buffer draws them conditionally independently given the country-year mean, so that process
-# at c = 0.15-0.25 yields cells correlated about 0.05, and about 0 with the country mean held
-# flat. The construction is a correlation-limited equivalent pool — K = round(1/c) independent
-# cells standing in for a large correlated pool — which holds because the effective number of
-# independent units in a pool of N units with mean pairwise correlation rho tends to 1/rho.
-# The comparable quantity is therefore the observed mean pairwise correlation among
-# sub-national units. A second estimator (realised variance reduction) is reported alongside,
-# because that identity assumes equal variances: true of the engine's cells, not of real
-# hexagons.
-#
-# Unit. Hexagons are grouped by whole country, matching 03_buffer's bootstrap unit: it globs
-# efda_country_rates/ and drops the *_Temperate / *_Mediterranean split files, so France and
-# Italy enter as single countries there too (31 files). No bioregion split is applied here.
+# Two bases (levels, and each hexagon's linear trend removed) and two year windows (full, and
+# excluding the author-constructed 2017-2023). Drift is a paired comparison across countries;
+# the pooled null applies one shared year permutation to every country, preserving the
+# cross-country dependence that would otherwise make the test anticonservative.
 #
 # Emits: engine/output/sens_within_country_c.csv        (per-country estimates + drift)
 #        engine/output/sens_within_country_c_biome.csv  (pooled vs the assumed c)
 # =============================================================================
 stopifnot(basename(getwd()) == "analysis")
+source("engine/R/_utils.R")   # mean_pair_cor, detrend, hex_panels, corr_drop_report
 cat("[sens_within_country_c] estimating within-country spatial correlation\n")
 
 MIN_HEX      <- 8L      # fewer hexagons than this gives an unstable pairwise mean
@@ -65,26 +50,16 @@ cat(sprintf("[sens_within_country_c] %d countries, %d hexagons, %d-%d\n",
             min(H$year), max(H$year)))
 
 # --- estimators ------------------------------------------------------------------
-mean_pair_cor <- function(M) {
-  sdev <- apply(M, 2, sd)
-  M <- M[, sdev > 0, drop = FALSE]          # a hexagon with no variance carries no information
-  if (ncol(M) < 3L) return(NA_real_)
-  R <- cor(M)
-  mean(R[upper.tri(R)])
-}
-detrend <- function(M) {
-  tt <- seq_len(nrow(M))
-  apply(M, 2, function(v) residuals(lm(v ~ tt)))
-}
-# Second, independent estimator of the effective pool size: the realised variance
-# reduction from pooling. 03_buffer represents a large correlated pool by K = round(1/c)
-# INDEPENDENT cells, which is valid only if 1/c is the effective number of independent
-# units. For N units of equal variance and mean pairwise correlation rho, Var(mean) =
-# sigma^2[1+(N-1)rho]/N, so Var_single/Var_pooled -> 1/rho. Reported alongside 1/rho
-# because real hexagons are heteroskedastic while the engine's cells are not: the
-# variance ratio weights high-variance hexagons more, so the two bracket the answer
-# rather than coincide. Bounded above by n_hex, so it is only informative when
-# n_hex >> 1/rho.
+# A hexagon with no disturbance in a sub-window carries no correlation information, so drop
+# it (counted via corr_drop_report) rather than halting -- unlike the country-level script,
+# where a zero-variance unit would mean a broken panel.
+mpc <- function(M) mean_pair_cor(M, on_zero_variance = "drop", unit = "hexagon")
+# Second, independent estimator of the effective pool size: the realised variance reduction
+# from pooling. For N units of equal variance and mean pairwise correlation rho,
+# Var(mean) = sigma^2[1+(N-1)rho]/N, so Var_single/Var_pooled -> 1/rho. Reported alongside
+# 1/rho because real hexagons are heteroskedastic while the engine's cells are not: the
+# variance ratio weights high-variance hexagons more, so the two bracket the answer. Bounded
+# above by n_hex, so informative only when n_hex >> 1/rho.
 n_eff_var_ratio <- function(M) {
   sdev <- apply(M, 2, sd); M <- M[, sdev > 0, drop = FALSE]
   if (ncol(M) < 3L) return(NA_real_)
@@ -93,25 +68,9 @@ n_eff_var_ratio <- function(M) {
   mean(apply(M, 2, var)) / vp
 }
 
-# --- per-country hexagon x year matrices ----------------------------------------
-build_mats <- function(years) {
-  mats <- list(); dropped <- list()
-  for (cn in sort(unique(H$country))) {
-    d <- H[H$country == cn & H$year %in% years, ]
-    M <- tapply(d$lambda_natural, list(as.character(d$year), as.character(d$hex_id)), identity)
-    if (anyNA(M)) stop("incomplete hexagon panel for ", cn)
-    # A hexagon that is almost always zero cannot be correlated meaningfully.
-    ok <- colSums(M > 0) >= MIN_NONZERO
-    dropped[[cn]] <- sum(!ok)
-    M <- M[, ok, drop = FALSE]
-    if (ncol(M) >= MIN_HEX) mats[[cn]] <- list(M = M, dropped = dropped[[cn]])
-  }
-  mats
-}
-
 # --- one year window: per-country estimates + permutation nulls ------------------
 run_window <- function(years, label) {
-  mats <- build_mats(years)
+  mats <- hex_panels(H, years, MIN_NONZERO, MIN_HEX)
   cat(sprintf("[sens_within_country_c] %-14s usable countries (>=%d active hexagons): %d of %d\n",
               label, MIN_HEX, length(mats), length(unique(H$country))))
   if (!length(mats)) stop("no country has enough active hexagons in window ", label)
@@ -134,12 +93,12 @@ run_window <- function(years, label) {
     perm_idx <- lapply(seq_len(N_PERM), function(i) sample(nrow(M)))
     for (b in c("levels", "detrended")) {
       B <- bases[[b]]
-      full <- mean_pair_cor(B)
-      oe <- mean_pair_cor(B[seq_len(ne), , drop = FALSE])
-      ol <- mean_pair_cor(B[(ne + 1L):nrow(B), , drop = FALSE])
+      full <- mpc(B)
+      oe <- mpc(B[seq_len(ne), , drop = FALSE])
+      ol <- mpc(B[(ne + 1L):nrow(B), , drop = FALSE])
       pn <- vapply(perm_idx, function(idx)
-        mean_pair_cor(B[idx[(ne + 1L):nrow(B)], , drop = FALSE]) -
-          mean_pair_cor(B[idx[seq_len(ne)], , drop = FALSE]), numeric(1))
+        mpc(B[idx[(ne + 1L):nrow(B)], , drop = FALSE]) -
+          mpc(B[idx[seq_len(ne)], , drop = FALSE]), numeric(1))
       nulls[[paste(b, cn)]] <- pn
       rows[[length(rows) + 1L]] <- data.frame(
         year_window = label, country = cn, basis = b,
@@ -277,9 +236,9 @@ for (k in c(2L, 4L, 8L, 12L, 16L, 20L)) {
       ky <- if (win == "full") rep(TRUE, length(yy0)) else !(yy0 %in% CONSTRUCTED)
       B <- detrend(M0[ky, ok, drop = FALSE])
       y2 <- yy0[ky]; ne <- sum(y2 <= floor(median(y2)))
-      dd <- mean_pair_cor(B[(ne + 1L):nrow(B), , drop = FALSE]) -
-        mean_pair_cor(B[seq_len(ne), , drop = FALSE])
-      if (win == "full") { rho <- c(rho, mean_pair_cor(B)); dfull <- c(dfull, dd) }
+      dd <- mpc(B[(ne + 1L):nrow(B), , drop = FALSE]) -
+        mpc(B[seq_len(ne), , drop = FALSE])
+      if (win == "full") { rho <- c(rho, mpc(B)); dfull <- c(dfull, dd) }
       else dexcl <- c(dexcl, dd)
     }
   }
@@ -305,4 +264,9 @@ for (b in c("levels", "detrended")) for (w in c("full", "excl_2017_2023")) {
 }
 
 cat("\n  * biome has no rows in mc_summary, so its c cannot move a published NCV\n")
+# Zero-variance hexagons are dropped inside mpc(); report the incidence so the reader knows
+# how many pairs were excluded rather than assuming every active hexagon entered every window.
+.dr <- corr_drop_report()
+cat(sprintf("\n[sens_within_country_c] zero-variance hexagon drops: %d across %d sub-window(s)\n",
+            .dr$dropped, .dr$windows_affected))
 cat("\n[sens_within_country_c] wrote 2 tables to engine/output/\n")

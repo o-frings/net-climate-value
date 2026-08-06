@@ -138,7 +138,7 @@ dom_biome <- setNames(.cb$biome[!duplicated(.cb$country_root)],
 # Mirrors analysis/R/26_empirical_buffer.R (the published b_se).
 K_BATCH <- 20L
 bootstrap_buffer <- function(series, severity, U_50, R_mult, c_corr, H, n_mc = BUF_N_MC,
-                             uplift_vec = NULL) {
+                             uplift_vec = NULL, need_se = TRUE) {
   if (length(series) < 10) return(list(b = NA_real_, var99 = NA_real_, se = NA_real_))
   E_Z    <- expected_severity(severity)
   # Default (headline, issued-today): climate ramps 5% -> U_50 over the H-yr window.
@@ -156,6 +156,19 @@ bootstrap_buffer <- function(series, severity, U_50, R_mult, c_corr, H, n_mc = B
   fit <- fit_gpd(cum_loss)
   b     <- min(tvar_semi(0.99, cum_loss, fit), 1.0)   # TVaR99 (headline)
   var99 <- min(var_semi(0.99, cum_loss, fit), 1.0)    # VaR99 (parametric_vs_empirical)
+  # A non-finite buffer means the Beta/GPD layer failed (e.g. c = 1 makes the Beta
+  # concentration zero, so every draw is NaN). Checked on every path, because the
+  # batch-means assertion below -- which is what originally caught that -- does not run
+  # when need_se is FALSE.
+  if (!is.finite(b)) stop("buffer TVaR is not finite (c_corr = ", c_corr,
+                          ", H = ", H, "); the loss draws are degenerate")
+  # Callers that only read $b (the standalone c-sensitivity) skip the batch-means SE; the
+  # engine keeps it because 07_montecarlo draws b ~ N(b_central, b_se). MEASURED: skipping it
+  # saves no meaningful time. The cost here is dominated by the n_mc-iteration draw loop above
+  # (~1.6M rbeta calls per invocation), not by the K_BATCH extra GPD fits, which are cheap
+  # arithmetic by comparison. Kept because computing a value that is then discarded is still
+  # wrong, not because it is faster.
+  if (!need_se) return(list(b = b, var99 = var99, se = NA_real_))
   bsz <- floor(length(cum_loss) / K_BATCH)
   batch <- vapply(seq_len(K_BATCH), function(j) {
     seg <- cum_loss[((j - 1) * bsz + 1):(j * bsz)]
@@ -233,35 +246,43 @@ PRACTICE_BUF_N_MC <- 8000L    # per-country depth (interp-free; batch SE reporte
 .pbuf_cache <- new.env(parent = emptyenv())
 
 # whole-country buffer with practice multipliers folded in (dominant-biome base)
-.country_buf_mult <- function(cn, ft, H, R_mult, lambda_mult, c_mult, uplift_vec, n_mc) {
+.country_buf_mult <- function(cn, ft, H, R_mult, lambda_mult, c_mult, uplift_vec, n_mc,
+                              need_se) {
   bm  <- dom_biome[[cn]]
   R   <- R_of(bm, ft) * R_mult
   cc  <- c_by_biome[[bm]] * c_mult
   ser <- series_by_country[[cn]] * lambda_mult          # lambda_mult scales the rate
   bootstrap_buffer(ser, sev_by_country[[cn]], U50_by_country[[cn]], R, cc, H,
-                   n_mc = n_mc, uplift_vec = uplift_vec)
+                   n_mc = n_mc, uplift_vec = uplift_vec, need_se = need_se)
 }
 
 # forest-area-weighted practice buffer for a biome x forest_type at horizon H.
 # uplift_vec = NULL -> headline ramp (0.05 -> U_50); pass rep(U_end, H) for a
 # sustained climate level (e.g. end-of-century RCP8.5, for the buffer-range report).
 practice_buffer_rate <- function(biome, ft, H, R_mult = 1, lambda_mult = 1, c_mult = 1,
-                                 uplift_vec = NULL, n_mc = PRACTICE_BUF_N_MC) {
-  key <- paste("pb", biome, ft, H, R_mult, lambda_mult, c_mult,
-               if (is.null(uplift_vec)) "ramp" else paste0("flat", round(uplift_vec[1], 5)),
-               n_mc, sep = "|")
+                                 uplift_vec = NULL, n_mc = PRACTICE_BUF_N_MC,
+                                 need_se = TRUE) {
+  # Two keys, deliberately. seed_key drives the RNG below and must NOT depend on need_se, or
+  # asking for the SE would change the draws (this is exactly what the manifest caught). key
+  # additionally carries need_se so a cached se = NA is never served to a caller that needs it.
+  seed_key <- paste("pb", biome, ft, H, R_mult, lambda_mult, c_mult,
+                    if (is.null(uplift_vec)) "ramp" else paste0("flat", round(uplift_vec[1], 5)),
+                    n_mc, sep = "|")
+  key <- paste(seed_key, need_se, sep = "|")
   if (!is.null(.pbuf_cache[[key]])) return(.pbuf_cache[[key]])
   zb <- efda_sum[efda_sum$biome == biome & !is.na(efda_sum$forest_kha) &
                  efda_sum$forest_kha > 0, c("country_root", "forest_kha")]
   zb <- aggregate(forest_kha ~ country_root, zb, sum)
   zb <- zb[zb$country_root %in% names(series_by_country), ]
   if (nrow(zb) == 0) stop("practice_buffer_rate: no EFDA countries for biome ", biome)
-  set.seed(2026L + (sum(utf8ToInt(key)) %% 100000L))     # reproducible per signature
+  set.seed(2026L + (sum(utf8ToInt(seed_key)) %% 100000L))  # reproducible per signature
   bs <- lapply(zb$country_root, .country_buf_mult, ft = ft, H = H, R_mult = R_mult,
-               lambda_mult = lambda_mult, c_mult = c_mult, uplift_vec = uplift_vec, n_mc = n_mc)
+               lambda_mult = lambda_mult, c_mult = c_mult, uplift_vec = uplift_vec,
+               n_mc = n_mc, need_se = need_se)
   w  <- zb$forest_kha / sum(zb$forest_kha)
   res <- list(b  = sum(w * vapply(bs, function(x) x$b,  numeric(1))),
-              se = sum(w * vapply(bs, function(x) x$se, numeric(1))))
+              se = if (need_se) sum(w * vapply(bs, function(x) x$se, numeric(1)))
+                   else NA_real_)
   .pbuf_cache[[key]] <- res
   res
 }

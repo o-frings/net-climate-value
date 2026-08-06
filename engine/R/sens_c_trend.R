@@ -5,55 +5,36 @@
 # sens_within_country_correlation.R:
 #   Rscript engine/R/sens_c_trend.R
 #
-# Question. The engine applies an RCP uplift to the mean hazard lambda but holds the
-# within-country spatial correlation c fixed. If warming also synchronises losses, a fixed c
-# overstates end-of-century diversification. sens_within_country_correlation.R shows c is not
-# detectably drifting in calendar time; this script asks the projection question: if lambda
-# rises by the amount the engine already assumes, what does the record imply c does?
+# The engine gives the mean hazard lambda an RCP uplift but holds the within-country
+# correlation c fixed. If warming also synchronises losses, a fixed c overstates end-of-century
+# diversification. This asks the projection question: if lambda rises as the engine assumes,
+# what does the record imply c does?
 #
-# Elasticity rather than a time trend. Extrapolating a 39-year calendar trend to 2100 is
-# unbounded and unconnected to the emission scenario, and the engine's projection mechanism is
-# the hazard uplift U, not the year. The primary estimate is therefore the elasticity of
-# correlation to hazard, measured within each country across non-overlapping time blocks:
-#     z(rho_block) = a_country + beta * log(lambda_block)
-# Within-country variation only, so cross-country differences (biome, size, species mix) do not
-# enter. beta is then applied to the engine's own uplift:
-#     z_future = z_observed + beta * log(1 + U)
-# with U from derived_biome_params.csv (U_100 for RCP4.5, U_100_rcp85 for RCP8.5), keeping the
-# projection consistent with the rest of the model. The calendar-time slope is reported
-# alongside as a cross-check.
+# Primary estimate is the elasticity of correlation to hazard, not a calendar trend: the
+# engine's projection mechanism is the uplift U, not the year, and extrapolating a 39-year
+# trend to 2100 is unbounded and unconnected to the scenario. Within each country, across
+# non-overlapping blocks, z(rho_block) = a_country + beta*log(lambda_block); beta is then
+# applied to the engine's own uplift as z_future = z_observed + beta*log(1+U), with U from
+# derived_biome_params.csv. Fitting on Fisher z keeps projected c admissible. The calendar
+# slope is reported alongside as a cross-check, and extrapolating it is a stress test rather
+# than a forecast.
 #
-# Fisher z. A correlation is bounded and a linear trend in rho is not, so extrapolating to 2100
-# can leave [0,1). Fitting and projecting on z = atanh(rho) and back-transforming keeps every
-# projected c admissible.
+# Inference: countries share calendar years, so a bootstrap over countries treats them as
+# independent and understates the standard error. Quote the permutation p-value, which applies
+# one shared year permutation to every country; bootstrap intervals are retained only to show
+# cross-country spread and are labelled anticonservative in the output.
 #
-# Inference. Countries share calendar years, so a common European trend moves every country's
-# slope together. A bootstrap over countries treats them as independent and understates the
-# standard error: it puts the calendar slope's interval clear of zero, contradicting the
-# correctly specified no-drift result in sens_within_country_correlation.R. Both are reported;
-# the permutation p-value is the one to quote, since it draws one year permutation and applies
-# it to every country, preserving the shared-year dependence. Bootstrap intervals are retained
-# to show cross-country spread and are labelled anticonservative in the output.
-#
-# Two multipliers, reported separately because they answer different questions:
-#   c_mult_climate_only = c_future / c_observed   the climate-driven relative rise. Applied on
-#       top of the assumed c, it keeps the present-day assumption (which the data show is
-#       already conservative) and adds the climate response.
-#   c_mult_recalibrated = c_future / c_assumed    replaces the assumed c with the projected one.
-#       Lower, because the assumed c already exceeds the observed one.
-#
-# Range of the calendar route. Extrapolating the fitted slope linearly in z over ten decades
-# implies c around 0.5 by 2100 (N_eff about 2), i.e. within-country diversification nearly
-# gone. That is outside anything in the record and rests on a slope fitted to 32 years at
-# p = 0.06, so it is an upper bound for stress-testing rather than a forecast; the 2050 figures
-# are the defensible end. sens_c_uplift.R additionally reports the K = 1 case, which bounds the
-# effect whatever c does.
+# Two multipliers, not to be conflated: c_mult_climate_only = c_future/c_observed (the
+# climate-driven relative rise, applied on top of the assumed c) and c_mult_recalibrated =
+# c_future/c_assumed (replaces the assumed c outright; lower, since assumed already exceeds
+# observed).
 #
 # Emits: engine/output/sens_c_trend_country.csv    (per country: elasticity, calendar slope)
 #        engine/output/sens_c_trend_pooled.csv     (pooled slopes + permutation p)
 #        engine/output/sens_c_trend_projection.csv (per biome x scenario: projected c, mults)
 # =============================================================================
 stopifnot(basename(getwd()) == "analysis")
+source("engine/R/_utils.R")   # mean_pair_cor, hex_panels, corr_drop_report
 cat("[sens_c_trend] hazard-elasticity of the within-country correlation\n")
 
 MIN_HEX     <- 8L
@@ -72,37 +53,16 @@ CONSTRUCTED <- 2017:2023
 H <- as.data.frame(readRDS(.need("data/processed/efda_hex_rates.rds")))
 if (anyNA(H$lambda_natural)) stop("NA lambda_natural in the hexagon series")
 
-mean_pair_cor <- function(M) {
-  s <- apply(M, 2, sd); M <- M[, s > 0, drop = FALSE]
-  if (ncol(M) < 3L) return(NA_real_)
-  R <- cor(M); mean(R[upper.tri(R)])
-}
+mpc <- function(M) mean_pair_cor(M, on_zero_variance = "drop", unit = "hexagon")
 fz <- function(r) atanh(pmin(pmax(r, -0.999), 0.999))
 inv_fz <- function(z) tanh(z)
-
-# --- per-country year x hexagon matrices, on a common year grid -------------------
-build_mats <- function(years) {
-  mats <- list()
-  for (cn in sort(unique(H$country))) {
-    d <- H[H$country == cn & H$year %in% years, ]
-    M <- tapply(d$lambda_natural, list(as.character(d$year), as.character(d$hex_id)), identity)
-    if (anyNA(M)) stop("incomplete hexagon panel for ", cn)
-    ok <- colSums(M > 0) >= MIN_NONZERO
-    M <- M[, ok, drop = FALSE]
-    if (ncol(M) >= MIN_HEX) mats[[cn]] <- M
-  }
-  ny <- unique(vapply(mats, nrow, integer(1)))
-  if (length(ny) != 1L)
-    stop("countries differ in year count; the shared-year permutation needs a common grid")
-  mats
-}
 
 # --- slopes for one country, given a row order (identity = observed) ---------------
 # Blocks are contiguous and non-overlapping, so successive rho estimates are independent
 # given the year process; overlapping windows would make the slope's nominal SE too small.
 slopes_one <- function(M, blk, ord) {
   Mp <- M[ord, , drop = FALSE]
-  rho <- vapply(blk, function(ii) mean_pair_cor(Mp[ii, , drop = FALSE]), numeric(1))
+  rho <- vapply(blk, function(ii) mpc(Mp[ii, , drop = FALSE]), numeric(1))
   lam <- vapply(blk, function(ii) mean(Mp[ii, , drop = FALSE]), numeric(1))
   mid <- vapply(blk, mean, numeric(1))              # block position, fixed under permutation
   keep <- is.finite(rho) & lam > 0
@@ -124,13 +84,13 @@ slopes_one <- function(M, blk, ord) {
 }
 
 run_window <- function(years, nb_blocks, label) {
-  mats <- build_mats(years)
-  ny <- nrow(mats[[1]])
+  mats <- hex_panels(H, years, MIN_NONZERO, MIN_HEX, require_common_grid = TRUE)
+  ny <- nrow(mats[[1]]$M)
   blk <- split(seq_len(ny), cut(seq_len(ny), breaks = nb_blocks, labels = FALSE))
   cat(sprintf("[sens_c_trend] %-14s %d countries, %d blocks of ~%d yr\n",
               label, length(mats), length(blk), round(ny / length(blk))))
 
-  obs <- t(vapply(mats, function(M) slopes_one(M, blk, seq_len(ny)), numeric(5)))
+  obs <- t(vapply(mats, function(z) slopes_one(z$M, blk, seq_len(ny)), numeric(5)))
   cty <- data.frame(year_window = label, country = rownames(obs),
                     n_blocks = obs[, "nb"], beta_hazard = obs[, "beta"],
                     slope_per_decade = obs[, "dec"],
@@ -142,7 +102,7 @@ run_window <- function(years, nb_blocks, label) {
   set.seed(SEED)
   nulls <- vapply(seq_len(N_PERM), function(i) {
     ord <- sample(ny)
-    s <- t(vapply(mats, function(M) slopes_one(M, blk, ord), numeric(5)))
+    s <- t(vapply(mats, function(z) slopes_one(z$M, blk, ord), numeric(5)))
     c(beta = mean(s[, "beta"], na.rm = TRUE), dec = mean(s[, "dec"], na.rm = TRUE),
       beta_j = mean(s[, "beta_j"], na.rm = TRUE), dec_j = mean(s[, "dec_j"], na.rm = TRUE))
   }, numeric(4))

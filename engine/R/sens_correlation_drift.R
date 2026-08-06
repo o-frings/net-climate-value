@@ -4,47 +4,32 @@
 # Standalone SI analysis (not part of run_engine.R). Run from analysis/:
 #   Rscript engine/R/sens_correlation_drift.R
 #
-# Purpose. The buffer treats spatial correlation c as fixed per biome (engine/params/
-# biome_correlation.csv, sourced from Anderegg 2020 rather than fitted here), while only the
-# mean hazard rate gets an RCP uplift. The mechanism most likely to raise c under climate
-# change — synchronised continental droughts driving simultaneous outbreaks — is also why
-# correlation matters, so a fixed c would overstate end-of-century diversification and make
-# the Fig 4 country rates a lower bound rather than a central estimate. c enters the pool only
-# through N_eff = round(1/c), so a drift in c is a drift in how much the pool can diversify.
+# The buffer treats spatial correlation c as fixed per biome (engine/params/
+# biome_correlation.csv, from Anderegg 2020 rather than fitted here) while only the mean hazard
+# gets an RCP uplift. The mechanism most likely to raise c under warming -- synchronised
+# continental droughts driving simultaneous outbreaks -- is also why correlation matters, so a
+# fixed c would overstate end-of-century diversification.
 #
-# Scale. The engine's c is a WITHIN-country parameter: 03_buffer sets K = round(1/c) effective
-# decorrelated CELLS inside one country's pool. CROSS-country co-movement is not parameterised
-# by c at all — 12_pool_buildup induces it empirically by drawing SHARED resampled years, so
-# all countries see the same year. What this script measures is that cross-country co-movement.
-# It is therefore the right quantity for the pooling/diversification claim (Fig 4b, ED Fig 4),
-# but it is NOT an estimate of c and must not be substituted for one. For c itself, see
-# sens_within_country_correlation.R, which estimates the within-country correlation from
-# per-hexagon EFDA series and IS comparable to biome_correlation.csv.
+# SCALE. The engine's c is WITHIN-country: 03_buffer sets K = round(1/c) decorrelated CELLS
+# inside one country's pool. CROSS-country co-movement is not parameterised by c at all --
+# 12_pool_buildup induces it empirically via shared resampled years. This script measures that
+# cross-country co-movement, so it is the right quantity for the pooling claim (Fig 4b, ED
+# Fig 4) but is NOT an estimate of c. For c itself see sens_within_country_correlation.R.
 #
-# Method. Estimates the observed cross-country correlation of annual natural
-# disturbance rates from the EFDA record and tests whether it has drifted, three ways:
-#   (1) early vs late half, non-overlapping, with a year-block bootstrap CI on the
-#       difference — this is the inferential test;
-#   (2) a moving-window series, descriptive only (overlapping windows share years, so the
-#       slope's nominal p-value would be anticonservative and is deliberately not reported);
-#   (3) correlation against contemporaneous hazard intensity, i.e. whether co-movement rises
-#       in high-hazard periods rather than with calendar time.
-#
-# Reported on two bases, because the choice matters and should not be silent:
-#   levels     — correlation of annual rates. Includes any common trend, so a shared
-#                upward trend alone can produce positive correlation.
-#   detrended  — each country's own linear time trend removed first, isolating
-#                synchronised SHOCKS, which is what a bad pool year actually is.
-#
-# Robustness. 2017-2023 rates are author-constructed (see the manuscript's disturbance-data
-# limitation), so every statistic is recomputed on 1986-2016 alone. If a drift appears only
-# with the constructed years it is an artefact of them, and the script says so.
+# Three tests: (1) early vs late half, non-overlapping, with a year-block bootstrap CI on the
+# difference -- the inferential one; (2) a moving-window series, descriptive only, since
+# overlapping windows share years and the nominal p-value would be anticonservative;
+# (3) correlation against contemporaneous hazard, i.e. whether co-movement rises in high-hazard
+# periods rather than with calendar time. Reported on two bases: levels (includes any common
+# trend) and detrended (isolates synchronised shocks). Every statistic is recomputed on
+# 1986-2016 alone, since 2017-2023 rates are author-constructed.
 #
 # Emits: engine/output/sens_correlation_drift_summary.csv   (headline statistics)
 #        engine/output/sens_correlation_drift_windows.csv   (moving-window series)
 #        engine/output/sens_correlation_drift_biome.csv     (observed vs assumed c)
 # =============================================================================
 stopifnot(basename(getwd()) == "analysis")
+source("engine/R/_utils.R")   # mean_pair_cor, detrend
 cat("[sens_correlation_drift] cross-country disturbance correlation over time\n")
 
 WINDOW      <- 15L     # moving-window width in years (descriptive series only)
@@ -82,23 +67,12 @@ cat(sprintf("[sens_correlation_drift] panel %d years x %d countries (%d-%d)\n",
             nrow(X), ncol(X), min(years), max(years)))
 
 # --- estimators -----------------------------------------------------------------
-# Mean pairwise Pearson correlation over the upper triangle. Columns with no variance
-# would give an undefined correlation, so they are an error rather than an NA to skip.
-mean_pair_cor <- function(M) {
-  if (nrow(M) < 3L) stop("need >= 3 years to correlate; got ", nrow(M))
-  sdev <- apply(M, 2, sd)
-  if (any(sdev <= 0)) stop("zero-variance country in window: ",
-                           paste(colnames(M)[sdev <= 0], collapse = ", "))
-  R <- cor(M)
-  mean(R[upper.tri(R)])
-}
-# Remove each country's own linear time trend, leaving synchronised shocks.
-detrend <- function(M) {
-  tt <- seq_len(nrow(M))
-  apply(M, 2, function(v) residuals(lm(v ~ tt)))
-}
+# A zero-variance COUNTRY in a window would mean a broken panel, not a real quiet unit, so
+# halt rather than drop -- the opposite choice from the hexagon-level script, which is why
+# mean_pair_cor takes the behaviour as an argument (engine/R/_utils.R).
+mpc <- function(M) mean_pair_cor(M, on_zero_variance = "stop", min_obs = 3L, unit = "country")
 # Both bases for one block of years.
-both_bases <- function(M) c(levels = mean_pair_cor(M), detrended = mean_pair_cor(detrend(M)))
+both_bases <- function(M) c(levels = mpc(M), detrended = mpc(detrend(M)))
 
 # --- (1) early vs late half, with a year-block bootstrap ------------------------
 # Non-overlapping halves, so the comparison is clean. The bootstrap resamples YEARS within

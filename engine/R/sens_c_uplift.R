@@ -5,32 +5,21 @@
 # sens_within_country_correlation.R and sens_c_trend.R:
 #   Rscript engine/R/sens_c_uplift.R
 #
-# Purpose. A bounded sensitivity on the within-country spatial correlation c, which is held
-# fixed per biome while only the mean hazard gets an RCP uplift. Because
-# sens_within_country_correlation.R estimates c from the per-hexagon EFDA record, the sweep is
-# bounded by a measured range rather than an arbitrary one.
+# c enters the NCV only through the buffer b: net_share = (1-L)(1-T)(1-b), and neither L nor T
+# is a function of c. Rescaling c and recomputing b via the engine's own practice_buffer_rate()
+# therefore isolates the exact c-effect. The practice-specific c_mult in practices.csv is
+# preserved and the sweep multiplies on top of it, as 04_headline.R does. Modes:
+#   uniform_*  one global multiplier on every biome's c, the precautionary case and its mirror
+#   observed   c set to the value measured per biome (c_obs/c_assumed)
+#   c_070_K1   c = 0.70, the threshold at which K = round(1/c) reaches 1, i.e. no within-country
+#              diversification. K is floored at 1 so the response saturates here, making this a
+#              hard bound. c = 1 is inadmissible: it sets the Beta concentration to zero.
+#   proj_*     c replaced by the value projected in sens_c_trend.R (RCP8.5 2100 elasticity, and
+#              the scenario-blind calendar extrapolation to 2050 and 2100)
 #
-# What it isolates. c enters the NCV only through the buffer b: net_share = (1-L)(1-T)(1-b),
-# and neither L nor T is a function of c. Rescaling c and recomputing b via the engine's own
-# practice_buffer_rate() therefore gives the exact c-effect with no other parameter moving.
-# Modes:
-#   uniform_*  one global multiplier on every biome's c, i.e. the precautionary case in which
-#              correlation rises with warming, and its mirror below 1
-#   observed   c set to the value measured per biome, a multiplier of c_obs/c_assumed
-#   c_070_K1   c = 0.70 everywhere, the threshold at which K = round(1/c) reaches 1, so no
-#              within-country diversification. K is floored at 1, so the response saturates
-#              here and this bounds the effect. c = 1 is inadmissible: it makes the Beta
-#              concentration zero.
-#   proj_*     c replaced by the value projected in sens_c_trend.R, for the RCP8.5 2100
-#              hazard-elasticity route and for the scenario-blind calendar extrapolation to
-#              2050 and 2100
-# The practice-specific c_mult in practices.csv is preserved and the sweep multiplies on top of
-# it, as 04_headline.R applies it.
-#
-# Basis. Deterministic, matching clean_headline.csv, so this is a sensitivity of the closed-form
-# central case and not comparable to the MC-median headline that is the paper's reporting
-# convention. The reported quantity is the shift in b and in net_share; levels are labelled
-# deterministic throughout.
+# Basis: deterministic, matching clean_headline.csv, so this is a sensitivity of the closed-form
+# central case and not comparable to the MC-median headline the paper reports. The quantity of
+# interest is the shift in b and net_share; levels are labelled deterministic throughout.
 #
 # Emits: engine/output/sens_c_uplift.csv         (per practice x multiplier)
 #        engine/output/sens_c_uplift_summary.csv (per multiplier, headline shift)
@@ -75,8 +64,11 @@ recompute <- function(mult_of_biome, tag) {
     x <- resolve_x(row)
     L <- leakage_L(row$practice, row$biome, x)
     T <- temporality_T(tau_2_temporality(row))
+    # need_se = FALSE: only $b is used below, so the batch-means SE would be computed and
+    # discarded. Measured runtime effect is negligible (the draw loop dominates).
     pb <- practice_buffer_rate(row$biome, row$forest_type, H_buf(protected),
-                               row$R_mult, row$lambda_mult, row$c_mult * s)
+                               row$R_mult, row$lambda_mult, row$c_mult * s,
+                               need_se = FALSE)
     data.frame(mode = tag, c_mult_applied = s, practice = row$practice,
                biome = row$biome, species = row$species,
                is_anchor = as.logical(row$is_anchor),
