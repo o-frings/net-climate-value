@@ -1,25 +1,20 @@
-# Extract per-HEXAGON annual natural-disturbance rates from the EFDA rasters.
+# Extract annual natural-disturbance rates per hexagon from the EFDA rasters.
 #
-# Purpose. The committed artefacts are country-aggregated, so the within-country spatial
-# correlation c (which sets N_eff = round(1/c) inside 03_buffer's per-country bootstrap,
-# and therefore the country-level buffer and the headline NCV) cannot be estimated or
-# tested for drift from them, and that parameter was queried in review. The JRC 35 km hexagons
-# are the natural sub-national unit: they are the grain the JRC risk model itself uses, so an
-# estimate on that grid is directly comparable to it.
+# 03_buffer sets N_eff from the within-country spatial correlation c, which
+# takes sub-national rates to estimate. The JRC 35 km hexagons put those rates
+# on the same grid as the JRC risk model, so the two compare directly.
 #
 # Usage (from ~/efda_scratch):  Rscript extract_hexagon_series.R <country_lower> [gpkg]
 # Output: hex_rates/<country>.rds  — hex_id x year long table with lambda_natural
 #
-# Method follows extract_country_split.R (same rasters, same agent codes, same forest
-# mask), but rasterises hex_id instead of a two-level biome zone, and does ONE multi-band
-# zonal call over all 39 years rather than a per-year freq() loop.
+# Same rasters, agent codes and forest mask as extract_country_split.R, but
+# rasterises hex_id instead of the two-level biome zones and runs one
+# multi-band zonal call over all 39 years instead of a per-year freq() loop.
 suppressPackageStartupMessages({ library(terra); library(sf); library(dplyr) })
 
 args    <- commandArgs(trailingOnly = TRUE)
 country <- args[1]
 if (is.na(country)) stop("Usage: Rscript extract_hexagon_series.R <country> [gpkg]")
-# Same convention as extract_country_split.R: env var, repo-relative default, and fail loud
-# rather than read an unreproducible absolute path.
 GPKG <- if (length(args) >= 2) args[2] else
   Sys.getenv("JRC_GPKG", unset = "data/JRC-risk-model/crcf_risk_bp_maps.gpkg")
 if (!file.exists(GPKG))
@@ -58,13 +53,10 @@ hexr <- rasterize(vect(hex), agent[[1]], field = "hex_id", background = NA)
 # --- forest pixels per hexagon --------------------------------------------------
 fpix <- zonal(fmask, hexr, fun = "sum", na.rm = TRUE)
 names(fpix) <- c("hex_id", "forest_pix")
-# zonal returns NA for a hexagon with no forest pixel under it. That is a genuine zero, not
-# missing data, so make it explicit rather than letting NA propagate into the keep index.
+# zonal returns NA where a hexagon has no forest pixel under it; that is a genuine zero.
 fpix$forest_pix[is.na(fpix$forest_pix)] <- 0
 fpix <- fpix[!is.na(fpix$hex_id), ]
 keep <- fpix$forest_pix >= MIN_FOREST_PIX
-# Report the exclusion rather than filtering silently: these hexagons are mostly
-# non-forest, and a rate computed on a handful of pixels is noise.
 cat(sprintf("[%s] hexagons overlapping: %d | with >=%d forest pixels: %d (dropped %d)\n",
             country, nrow(fpix), MIN_FOREST_PIX, sum(keep), sum(!keep)))
 if (!any(keep)) { cat("[", country, "] no hexagon passes the forest threshold; skipping\n"); quit(status = 0) }

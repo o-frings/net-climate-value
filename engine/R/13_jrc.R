@@ -5,8 +5,8 @@
 # risk model (Marinelli 2026): aggregate the JRC per-hexagon buffer-pool
 # contribution (crcf_risk_bp_maps.gpkg) to country x forest_type (P10/mean/P90,
 # n_hex>=5 via spatial join to country polygons), then compare to our b_TVaR99_H40.
-# Reports the share of cells within the JRC P10-P90 band + median abs diff to the
-# JRC mean (manuscript: 92% within band, 6.2pp). Figure rendering is the P4 layer.
+# Reports the share of cells within the JRC P10-P90 band and the median abs diff
+# to the JRC mean. Figure rendering is the P4 layer.
 # Reads only data/JRC-risk-model/ + engine/output/clean_buffer_rates.csv.
 # =============================================================================
 cat("[13_jrc] per-country comparison vs JRC/Marinelli...\n")
