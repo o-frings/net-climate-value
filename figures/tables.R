@@ -260,3 +260,89 @@ local({
     "\\end{table}")
   writeLines(L, con); cat(sprintf("  wrote latex_policy_deductions.tex (%d rows)\n", nrow(d)))
 })
+
+# --- within-country correlation: measured c + bounded exposure ---------------
+# Mirco Migliavacca's review point A1: c is held fixed per biome while lambda
+# gets the RCP uplift. Answered by measurement (sens_within_country_correlation.R,
+# sens_c_trend.R, sens_c_uplift.R): c re-estimated from EFDA on the JRC 35 km
+# hexagon grid runs 1.6-1.8x BELOW the assumed values, shows no hazard response,
+# and the buffer's exposure to c saturates at K = 1. Reporting basis: window
+# excl_2017_2023 (author-constructed years dropped) + Fisher-z detrended.
+local({
+  cb <- eng("sens_within_country_c_biome.csv")
+  cb <- cb[cb$year_window == "excl_2017_2023" & cb$basis == "detrended" &
+             cb$biome != "ALL", ]
+  ord <- c("Boreal", "Temperate", "Mediterranean", "Temperate_UK")
+  cb <- cb[match(ord, cb$biome), ]
+  stopifnot(!anyNA(cb$c_observed_mean), !anyNA(cb$c_assumed))
+  disp <- c(Boreal = "Boreal", Temperate = "Temperate",
+            Mediterranean = "Mediterranean", Temperate_UK = "Temperate (UK)")
+  rows_a <- sprintf("%s & %.2f & %.2f & %.1f & %d & %d",
+    disp[cb$biome], cb$c_assumed, cb$c_observed_mean,
+    cb$c_assumed / cb$c_observed_mean,
+    as.integer(cb$n_eff_assumed), as.integer(cb$n_eff_observed))
+
+  up <- eng("sens_c_uplift_summary.csv")
+  base <- up[up$mode == "uniform_1.00", ]
+  keep <- c(observed           = "Measured $c$",
+            proj_rcp85_2100    = "Projected $c$, 2100 RCP\\,8.5",
+            proj_calendar_2050 = "Calendar-drift stress, 2050",
+            proj_calendar_2100 = "Calendar-drift stress, 2100",
+            c_070_K1           = "No within-country diversification ($K{=}1$)")
+  up <- up[match(names(keep), up$mode), ]
+  stopifnot(!anyNA(up$delta_b_pp), nrow(base) == 1)
+  rows_b <- sprintf("%s & %.2f--%.2f & %+.1f & %+.1f",
+    keep, up$c_mult_min, up$c_mult_max, up$delta_b_pp, up$delta_net_share_pp)
+
+  tp <- eng("sens_c_trend_pooled.csv")
+  tp <- tp[tp$year_window == "excl_2017_2023", ]
+  med <- cb[cb$biome == "Mediterranean", ]
+  uk  <- cb[cb$biome == "Temperate_UK", ]
+
+  cap <- sprintf(paste0(
+    "\\textbf{Within-country spatial correlation: measured values and bounded exposure.} ",
+    "\\textbf{a}, Mean pairwise correlation $c$ of annual within-country disturbance ",
+    "rates, measured from the EFDA record on the \\citet{Marinelli_2026} 35\\,km hexagon ",
+    "grid (%d countries, 1985--2023; Fisher-$z$ detrended, excluding the ",
+    "author-constructed 2017--2023 years), against the assumed values ",
+    "(Supplementary Table~\\ref{tab:biome_params}); $K = \\mathrm{round}(1/c)$ is the ",
+    "implied number of independent units in the pool. \\textbf{b}, Effect of replacing ",
+    "the assumed $c$ on the median required buffer and median NCV across all ",
+    "practice--biome combinations (deterministic central basis, baseline buffer ",
+    "%.1f\\%%, NCV %.1f\\%%; not directly comparable to MC-median headline values)."),
+    sum(cb$n_countries), 100 * base$median_b, 100 * base$median_net_share)
+
+  note <- sprintf(paste0(
+    "Hazard elasticity of correlation $\\beta = %.3f$ (Fisher-$z$ scale; permutation ",
+    "$p = %.2f$, applying one shared year ordering to all countries, which share ",
+    "calendar years); the projected row pushes the RCP\\,8.5 hazard uplift through this ",
+    "elasticity. Calendar-time drift ($+%.3f\\,z$ per decade, $p = %.2f$) is not ",
+    "attributable to an emission pathway and enters only as a stress test; the ",
+    "Mediterranean alone rises within the record ($p = %.3f$). Temperate (UK) runs ",
+    "opposite (measured %.2f vs assumed %.2f, $n = %d$ countries); it lies outside the ",
+    "three-biome Monte Carlo, and a higher UK buffer would widen the reported Woodland ",
+    "Carbon Code gap. $K$ cannot fall below 1, so the final row bounds every scenario. ",
+    "Source: engine/output/sens\\_within\\_country\\_c\\_biome.csv, ",
+    "sens\\_c\\_uplift\\_summary.csv."),
+    tp$beta_hazard_mean, tp$beta_p_permutation,
+    tp$slope_per_decade_mean, tp$slope_p_permutation,
+    med$p_pooled_permutation, uk$c_observed_mean, uk$c_assumed,
+    as.integer(uk$n_countries))
+
+  con <- file.path(TBL_OUT, "latex_c_sensitivity.tex")
+  L <- c("\\begin{table}[H]\\centering",
+    sprintf("\\caption{%s}", cap),
+    "\\label{tab:c_sensitivity}",
+    "\\textbf{a}\\par\\smallskip",
+    "\\begin{tabular}{lrrrrr}", "\\toprule",
+    paste0("Biome & $c$ assumed & $c$ measured & assumed/measured & ",
+           "$K$ assumed & $K$ measured \\\\"),
+    "\\midrule", paste0(rows_a, " \\\\"), "\\bottomrule", "\\end{tabular}",
+    "\\par\\medskip\\textbf{b}\\par\\smallskip",
+    "\\begin{tabular}{lrrr}", "\\toprule",
+    "Scenario & $c$ multiplier & $\\Delta$ buffer (pp) & $\\Delta$ NCV (pp) \\\\",
+    "\\midrule", paste0(rows_b, " \\\\"), "\\bottomrule", "\\end{tabular}",
+    sprintf("\\par\\smallskip\\footnotesize %s", note),
+    "\\end{table}")
+  writeLines(L, con); cat("  wrote latex_c_sensitivity.tex\n")
+})
