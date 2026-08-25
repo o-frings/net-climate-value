@@ -215,3 +215,48 @@ local({
     label = "tab:jrc_buffer_comparison", file = "jrc_buffer_comparison.tex",
     note = "Engine JRC comparison (engine/output/jrc\\_country\\_comparison.csv).")
 })
+
+# --- policy deduction schedule: full practice x biome x forest type ----------
+# Mirco Migliavacca's review ask (B1): the numbers a methodology could apply as
+# per-practice deductions, in particular the leakage discount the adopted CRCF
+# carbon-farming methodology leaves unquantified. Both bases side by side (the
+# kappa triangular's median is 0.709, not its 0.60 mode, so MC-median leakage
+# runs ~7 pp above the deterministic central; a table quoting one basis must
+# label it). Custom writer: write_tex() has no grouped-header support and this
+# table needs \scriptsize.
+local({
+  d <- eng("policy_deductions.csv")   # sorted by MC-median NCV descending
+  biome_cell <- paste0(.esc(d$biome), ifelse(d$is_anchor_biome, "$^\\ast$", ""))
+  rows <- sprintf("%s & %s & %s & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f",
+    .esc(d$practice), biome_cell, .esc(d$forest_type),
+    d$leakage_pct, d$temporality_pct, d$buffer_pct, d$ncv_pct,
+    d$leakage_pct_central, d$temporality_pct_central, d$buffer_pct_central, d$ncv_pct_central)
+  con <- file.path(TBL_OUT, "latex_policy_deductions.tex")
+  L <- c("\\begin{table}[H]\\centering",
+    "\\scriptsize",
+    "\\setlength{\\tabcolsep}{3pt}",
+    paste0("\\caption{\\textbf{Policy deduction schedule: per-practice issuance discounts.} ",
+      "Market leakage ($L$), temporality ($T$), reversal-risk buffer ($b$), and the resulting ",
+      "net climate value (NCV, \\% of verified sequestration) for all ", nrow(d),
+      " practice--biome--forest-type combinations, on both reporting bases: Monte Carlo medians ",
+      "($n = 10{,}000$; the reporting convention used throughout) and the deterministic central ",
+      "parameterisation ($r=0.03$, $g=0.02$, $\\kappa=0.60$). Rows sorted by MC-median NCV. ",
+      "$^\\ast$\\,anchor biome (Table~\\ref{tab:mgmt}).}"),
+    "\\label{tab:policy_deductions}",
+    "\\begin{tabular}{lllrrrrrrrr}", "\\toprule",
+    paste0(" & & & \\multicolumn{4}{c}{MC median (\\%)} & ",
+           "\\multicolumn{4}{c}{Deterministic central (\\%)} \\\\"),
+    "\\cmidrule(lr){4-7}\\cmidrule(lr){8-11}",
+    "Practice & Biome & Forest type & $L$ & $T$ & $b$ & NCV & $L$ & $T$ & $b$ & NCV \\\\",
+    "\\midrule", paste0(rows, " \\\\"), "\\bottomrule", "\\end{tabular}",
+    paste0("\\par\\smallskip\\footnotesize MC-median leakage exceeds the deterministic value ",
+      "because $\\kappa$ is right-skewed: the triangular on $[0.33, 1.27]$ with mode 0.60 has ",
+      "median 0.71. The median is not a linear operator, so channel medians do not multiply ",
+      "exactly to the NCV column, which is the median net share computed draw by draw. ",
+      "Negative leakage marks supply-increasing practices (added timber supply displaces ",
+      "harvest elsewhere), capped at $-$20\\% ($\\ell_{\\max}$). Subset-adoption variants ",
+      "(e.g.\\ leakage-only) in Table~\\ref{tab:modular_adoption}. ",
+      "Source: engine/output/policy\\_deductions.csv."),
+    "\\end{table}")
+  writeLines(L, con); cat(sprintf("  wrote latex_policy_deductions.tex (%d rows)\n", nrow(d)))
+})

@@ -27,5 +27,5 @@ figures <- c(
   "ed_scheme_gap.R")              # ED   scheme integrity-gap decomposition
 for (f in figures) source(file.path("figures", f))
 
-source("figures/tables.R")          # 9 LaTeX tables (self-contained; uses eng())
+source("figures/tables.R")          # 10 LaTeX tables (self-contained; uses eng())
 cat("=== DONE — figures/output/ (PDF+PNG) + figures/output/tables/ (.tex) ===\n")
