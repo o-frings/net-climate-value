@@ -25,9 +25,11 @@ local({
   # axis_label (legacy row labels, row-aligned to y_num), ord (median rank for
   # factor levels / colour keying), mid_area, and line_colour.
   area_stats   <- fd("fd_fig5_area")
-  # Scenario colours from the shared theme helper (same scenario = same colour
-  # as fig4); supersedes the legacy ramp-tint line_colour column in the figdata.
-  scn_cols     <- scenario_colours(area_stats$scn_label)
+  # fig5 keeps its legacy area-keyed ramp (blue-beige-red over median area,
+  # line_colour/mid_area from the figdata) rather than the shared
+  # scenario_colours() classes: the red/grey/blue class bands overplot into an
+  # unreadable wash in panel b (author decision, 2026-09-01).
+  midpoint     <- area_stats$mid_area[1]              # gradient-fill midpoint
   # Scenario levels in median-rank order (highest median = ord 1) for panel b.
   area_by_rank <- area_stats[order(area_stats$ord), ]
   area_levels  <- area_by_rank$scn_label
@@ -47,11 +49,12 @@ local({
     geom_segment(aes(x = p95_area, xend = p95_area,
                      y = y_num - rh_b * 0.5, yend = y_num + rh_b * 0.5),
                  colour = "#999999", linewidth = 0.35) +
-    # IQR box filled with the scenario's colour
+    # IQR box with gradient fill keyed to median
     geom_rect(aes(xmin = p25_area, xmax = p75_area,
-                  ymin = y_num - rh_b, ymax = y_num + rh_b, fill = scn_label),
+                  ymin = y_num - rh_b, ymax = y_num + rh_b, fill = med_area),
               alpha = 0.85, colour = NA) +
-    scale_fill_manual(values = scn_cols, guide = "none") +
+    scale_fill_gradient2(low = "#BDD7EE", mid = "#E8D5C4", high = "#C0392B",
+                         midpoint = midpoint, guide = "none") +
     # White median line
     geom_segment(aes(x = med_area, xend = med_area,
                      y = y_num - rh_b, yend = y_num + rh_b),
@@ -91,7 +94,8 @@ local({
   fwd$rcp_label <- factor(fwd$rcp_label, levels = c("RCP 4.5", "RCP 8.5"))
   label_year <- fwd$label_year[1]
 
-  ts_colours <- scn_cols
+  # Gradient line colour per scenario (precomputed in the fragment).
+  ts_colours <- setNames(area_stats$line_colour, area_stats$scn_label)
 
   area_end_labels <- fd("fd_fig5_ts_ends")
   area_end_labels$scn_label <- factor(area_end_labels$scn_label, levels = area_levels)

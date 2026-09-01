@@ -26,10 +26,12 @@ PRACTICE_TYPE_COLOURS <- c("Harvest-reducing" = NATURE_RED,
 DEDUCTION_COLOURS <- c(Leakage = "#808080", Buffer = "#A8A8A8",
                        Temporality = "#C8C8C8", `Net issuance` = NATURE_BLUE)
 
-# CRCF deployment scenarios, shared by fig4 and fig5 (same scenario = same
-# colour in both): pure scenarios carry the full class colour, mixed scenarios
-# a 45%-white tint of their dominant class. Matches on label text, so both
-# figures' label variants ("Reducing\nonly", "Mixed: reducing") resolve.
+# CRCF deployment scenario classes (used by fig4; fig5 keeps its legacy
+# area-keyed blue-beige-red ramp from the figdata line_colour column — the
+# class colours overplot into an unreadable wash in its panel b): pure
+# scenarios carry the full class colour, mixed scenarios a 45%-white tint of
+# their dominant class. Matches on label text, so label variants
+# ("Reducing\nonly", "Mixed: reducing") resolve.
 scenario_colours <- function(labels) {
   cls <- ifelse(grepl("educing", labels), "reducing",
                 ifelse(grepl("eutral", labels), "neutral", "increasing"))
