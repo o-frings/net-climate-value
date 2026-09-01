@@ -23,6 +23,9 @@ suppressPackageStartupMessages({
   library(patchwork); library(ggnewscale); library(ggtext)
 })
 
+# Unified palette — overrides the legacy colour constants from prep/04_functions.
+source("figures/palette.R")
+
 FIG_OUT <- "figures/output"
 dir.create(FIG_OUT, recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(FIG_OUT, "tables"), recursive = TRUE, showWarnings = FALSE)

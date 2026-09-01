@@ -11,15 +11,9 @@ FIG_OUT <- "figures/output"
 dir.create(FIG_OUT, showWarnings = FALSE, recursive = TRUE)
 
 # --- palette -----------------------------------------------------------------
-NATURE_BLUE <- "#4A90D9"; NATURE_RED <- "#D55E00"
-NATURE_GREY <- "#5A5A5A"; NATURE_GREY_LIGHT <- "#F5F5F5"
-BIOME_COLOURS <- c(Boreal = "#4A90D9", Temperate = "#009E73",
-                   Mediterranean = "#E69F00", Temperate_UK = "#56B4E9")
-PRACTICE_TYPE_COLOURS <- c("Harvest-reducing" = "#D55E00",
-                           "Harvest-neutral" = "#009E73",
-                           "Harvest-increasing" = "#4A90D9")
-DEDUCTION_COLOURS <- c(Leakage = "#8C8C8C", Temporality = "#C8C8C8",
-                       Buffer = "#5C5C5C", `Net issuance` = "#4A90D9")
+# Single source of truth for all figure colours (also loaded by _setup_legacy.R,
+# the active pipeline entry point — keep no palette values in this file).
+source("figures/palette.R")
 
 # --- theme -------------------------------------------------------------------
 theme_nature <- function(base_size = 10, base_family = "") {

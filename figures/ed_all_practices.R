@@ -4,7 +4,7 @@
 # PURE PLOT. Single-panel butterfly/tornado chart: every practice × biome ×
 # species variant (44 rows) grouped into one facet band per practice. Left of
 # zero = stacked grey deductions (Buffer · Time · Leakage); right of zero =
-# net-issuance bar on a red→beige→blue gradient with a white % label. All data
+# net-issuance bar in NATURE_BLUE with a white % label. All data
 # prep (medians, derived net_share, leakage clamp, variant labels, factor
 # ordering) is done by the engine in engine/R/figdata/ed_all_practices.R and
 # read here via fd(); this script only builds factors from the engine's integer
@@ -41,23 +41,22 @@ local({
     variant  = factor(variant, levels = variant_levels),
     practice = factor(practice, levels = practice_levels))
 
-  ded_cols <- c(Leakage = "#808080", Time = "#C8C8C8", Buffer = "#A8A8A8")
+  ded_cols <- c(Leakage = DEDUCTION_COLOURS[["Leakage"]],
+                Time = DEDUCTION_COLOURS[["Temporality"]],
+                Buffer = DEDUCTION_COLOURS[["Buffer"]])
 
   fig <- ggplot() +
     geom_col(data = ded_long, aes(x = variant, y = neg_share, fill = component),
              position = position_stack(), width = 0.65, colour = NA) +
     scale_fill_manual(values = ded_cols, name = NULL, guide = "none") +
-    ggnewscale::new_scale_fill() +
-    geom_col(data = net_bar, aes(x = variant, y = net_share, fill = net_share),
-             width = 0.65, colour = NA) +
-    scale_fill_gradient2(low = "#C0392B", mid = "#E8D5C4", high = "#BDD7EE",
-                         midpoint = 0.30, guide = "none") +
+    geom_col(data = net_bar, aes(x = variant, y = net_share),
+             fill = NATURE_BLUE, width = 0.65, colour = NA) +
     # negative-leakage gain: supply-positive practices add timber supply, so leakage
     # returns value. Drawn from the 0 axis in the Leakage colour, as in fig3 panel a.
     geom_rect(data = subset(net_bar, leak_gain > 0),
               aes(xmin = as.integer(variant) - 0.325, xmax = as.integer(variant) + 0.325,
                   ymin = 0, ymax = leak_gain),
-              fill = "#808080", inherit.aes = FALSE) +
+              fill = DEDUCTION_COLOURS[["Leakage"]], inherit.aes = FALSE) +
     geom_text(data = net_bar, aes(x = variant, y = label_y, label = label),
               size = 2.6, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +

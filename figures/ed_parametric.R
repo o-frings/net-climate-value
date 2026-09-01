@@ -22,11 +22,7 @@ local({
   c_ord <- c_ord[order(c_ord$country_ord), ]
   fig_data$country <- factor(fig_data$country, levels = unique(c_ord$country))
 
-  BIOME_COLOURS_FIG <- c(
-    Boreal        = "#4A90D9",
-    Temperate     = "#009E73",
-    Mediterranean = "#E69F00",
-    Temperate_UK  = "#56B4E9")
+  BIOME_COLOURS_FIG <- BIOME_COLOURS
 
   p <- ggplot(fig_data,
               aes(x = b_pct, y = country, colour = biome, shape = method)) +
