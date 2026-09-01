@@ -11,8 +11,13 @@
 # =============================================================================
 
 local({
-  # Biome palette from the shared theme (Okabe–Ito plus a UK light blue).
-  BIOME_COLOURS_FIG <- BIOME_COLOURS
+  # Biome palette (legacy BIOME_COLOURS_FIG, Okabe–Ito plus a UK light blue).
+  BIOME_COLOURS_FIG <- c(
+    Boreal        = "#4A90D9",
+    Temperate     = "#009E73",
+    Mediterranean = "#E69F00",
+    Temperate_UK  = "#56B4E9"
+  )
 
   # ─── Engine-computed plot-ready table (all values pre-derived) ───
   cmp_plot <- fd("fd_ed_jrc_forest")

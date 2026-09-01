@@ -27,23 +27,24 @@ local({
   ded_long_v2$bar_label <- factor(ded_long_v2$bar_label, levels = bar_levels)
   net_bar_v2$bar_label  <- factor(net_bar_v2$bar_label,  levels = bar_levels)
   ded_long_v2$component <- factor(ded_long_v2$component, levels = c("Buffer", "Time", "Leakage"))
-  ded_cols_v2 <- c(Leakage = DEDUCTION_COLOURS[["Leakage"]],
-                   Time = DEDUCTION_COLOURS[["Temporality"]],
-                   Buffer = DEDUCTION_COLOURS[["Buffer"]])
+  ded_cols_v2 <- c(Leakage = "#808080", Time = "#C8C8C8", Buffer = "#A8A8A8")
 
   fig_a <- ggplot() +
     geom_col(data = ded_long_v2, aes(x = bar_label, y = -share, fill = component),
              position = position_stack(), width = 0.65, colour = NA) +
     scale_fill_manual(values = ded_cols_v2, name = NULL, guide = "none") +
-    geom_col(data = net_bar_v2, aes(x = bar_label, y = net_share),
-             fill = NATURE_BLUE, width = 0.65, colour = NA) +
+    ggnewscale::new_scale_fill() +
+    geom_col(data = net_bar_v2, aes(x = bar_label, y = net_share, fill = net_share),
+             width = 0.65, colour = NA) +
+    scale_fill_gradient2(low = "#C0392B", mid = "#E8D5C4", high = "#BDD7EE",
+                         midpoint = 0.30, guide = "none") +
     # negative-leakage gain: supply-positive practices add timber supply, so
     # leakage returns value (leak_gain > 0). Drawn from the 0 axis (centre) in
     # the Leakage colour so it reads as leakage adding to net issuance.
     geom_rect(data = subset(net_bar_v2, leak_gain > 0),
               aes(xmin = as.integer(bar_label) - 0.325, xmax = as.integer(bar_label) + 0.325,
                   ymin = 0, ymax = leak_gain),
-              fill = DEDUCTION_COLOURS[["Leakage"]], inherit.aes = FALSE) +
+              fill = "#808080", inherit.aes = FALSE) +
     geom_text(data = net_bar_v2, aes(x = bar_label, y = label_y, label = label),
               size = 2.4, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +
@@ -67,7 +68,8 @@ local({
     geom_segment(aes(x = p5_net, xend = p95_net, y = ptype, yend = ptype), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p5_net, xend = p5_net, y = y_num - rh_b * 0.5, yend = y_num + rh_b * 0.5), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p95_net, xend = p95_net, y = y_num - rh_b * 0.5, yend = y_num + rh_b * 0.5), colour = "#999999", linewidth = 0.35) +
-    geom_rect(aes(xmin = p25_net, xmax = p75_net, ymin = y_num - rh_b, ymax = y_num + rh_b), fill = NATURE_BLUE, alpha = 0.85, colour = NA) +
+    geom_rect(aes(xmin = p25_net, xmax = p75_net, ymin = y_num - rh_b, ymax = y_num + rh_b, fill = mean_net), alpha = 0.85, colour = NA) +
+    scale_fill_gradient2(low = "#C0392B", mid = "#E8D5C4", high = "#BDD7EE", midpoint = 0, guide = "none") +
     geom_segment(aes(x = median_net, xend = median_net, y = y_num - rh_b, yend = y_num + rh_b), colour = "white", linewidth = 0.6) +
     geom_point(aes(x = mean_net), shape = 21, size = 2, fill = "#333333", colour = "white", stroke = 0.5) +
     geom_text(aes(x = label_x, label = label),
@@ -90,7 +92,8 @@ local({
     geom_segment(aes(x = p5_gap, xend = p95_gap, y = scheme_name, yend = scheme_name), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p5_gap, xend = p5_gap, y = y_num - rh_c * 0.5, yend = y_num + rh_c * 0.5), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p95_gap, xend = p95_gap, y = y_num - rh_c * 0.5, yend = y_num + rh_c * 0.5), colour = "#999999", linewidth = 0.35) +
-    geom_rect(aes(xmin = p25_gap, xmax = p75_gap, ymin = y_num - rh_c, ymax = y_num + rh_c), fill = NATURE_RED, alpha = 0.85, colour = NA) +
+    geom_rect(aes(xmin = p25_gap, xmax = p75_gap, ymin = y_num - rh_c, ymax = y_num + rh_c, fill = mean_gap), alpha = 0.85, colour = NA) +
+    scale_fill_gradient2(low = "#BDD7EE", mid = "#E8D5C4", high = "#C0392B", midpoint = 0, guide = "none") +
     geom_segment(aes(x = median_gap, xend = median_gap, y = y_num - rh_c, yend = y_num + rh_c), colour = "white", linewidth = 0.6) +
     geom_point(aes(x = mean_gap), shape = 21, size = 2, fill = "#333333", colour = "white", stroke = 0.5) +
     geom_text(aes(x = label_x, label = label),

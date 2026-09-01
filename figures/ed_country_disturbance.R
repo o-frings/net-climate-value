@@ -84,7 +84,7 @@ local({
       geom_sf(aes(fill = {{ fill_expr }}), colour = "white", linewidth = 0.2) +
       scale_fill_gradient2(
         name     = name,
-        low      = NATURE_BLUE_LIGHT, mid = NATURE_BEIGE, high = NATURE_RED,
+        low      = "#BDD7EE", mid = "#E8D5C4", high = "#C0392B",
         midpoint = midpoint, limits = limits, breaks = breaks, labels = labels,
         guide    = cbar_guide, na.value = "#EEEEEE"
       ) +

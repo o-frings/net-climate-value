@@ -25,10 +25,6 @@ local({
   # axis_label (legacy row labels, row-aligned to y_num), ord (median rank for
   # factor levels / colour keying), mid_area, and line_colour.
   area_stats   <- fd("fd_fig5_area")
-  # fig5 keeps its legacy area-keyed ramp (blue-beige-red over median area,
-  # line_colour/mid_area from the figdata) rather than the shared
-  # scenario_colours() classes: the red/grey/blue class bands overplot into an
-  # unreadable wash in panel b (author decision, 2026-09-01).
   midpoint     <- area_stats$mid_area[1]              # gradient-fill midpoint
   # Scenario levels in median-rank order (highest median = ord 1) for panel b.
   area_by_rank <- area_stats[order(area_stats$ord), ]

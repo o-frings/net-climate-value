@@ -28,8 +28,8 @@ local({
     annotate("text", x = meta$nC, y = meta$asym_y,
              label = meta$asym_label,
              size = 1.9, colour = NATURE_GREY, hjust = 1, fontface = "italic") +
-    scale_colour_manual(values = c("Random enrolment" = NATURE_BLUE,
-                                   "Largest forest nations first" = NATURE_RED),
+    scale_colour_manual(values = c("Random enrolment" = "#2c7fb8",
+                                   "Largest forest nations first" = "#d95f02"),
                         name = NULL) +
     scale_x_continuous(breaks = breaks$x_break) +
     scale_y_continuous(labels = function(x) sprintf("%.2f", x)) +

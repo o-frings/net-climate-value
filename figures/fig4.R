@@ -15,7 +15,7 @@ local({
   has_repel <- requireNamespace("ggrepel", quietly = TRUE)
 
   a     <- fd("fd_fig4_a")
-  cc    <- fd("fd_fig4_colours"); cols <- scenario_colours(cc$scn_label)
+  cc    <- fd("fd_fig4_colours"); cols <- setNames(cc$colour, cc$scn_label)
   lv    <- cc$scn_label[order(cc$scn_ord)]; pure <- head(lv, 3)
   ann   <- fd("fd_fig4_annot"); flat <- ann$baseline_y
   env_a  <- fd("fd_fig4_env_a")   # country-level: med per (year, RCP) -> lines + surplus
@@ -24,7 +24,7 @@ local({
   band_b <- fd("fd_fig4_band_b")  # EU-level spread band
   a$scn_label <- factor(a$scn_label, levels = lv)
   lt   <- c("RCP 4.5" = "solid", "RCP 8.5" = "dashed")
-  WARM <- NATURE_RED; COOL <- NATURE_BLUE
+  WARM <- "#C0392B"; COOL <- "#2C7FB8"
 
   # ─── Panel a: country-level, pure scenarios, full-MC-range band + median ─────
   ap <- a[a$scn_label %in% pure, ]
