@@ -1,13 +1,12 @@
 # =============================================================================
-# 13_jrc.R  —  per-country comparison vs JRC/Marinelli (ed_fig_jrc_country_comparison)
+# 13_jrc.R  —  per-country comparison against the JRC CRCF risk model
 # =============================================================================
-# Cross-validates our country-level empirical TVaR99 buffer against the JRC CRCF
-# risk model (Marinelli 2026): aggregate the JRC per-hexagon buffer-pool
-# contribution (crcf_risk_bp_maps.gpkg) to country x forest_type (P10/mean/P90,
-# n_hex>=5 via spatial join to country polygons), then compare to our b_TVaR99_H40.
-# Reports the share of cells within the JRC P10-P90 band and the median abs diff
-# to the JRC mean. Figure rendering is the P4 layer.
-# Reads only data/JRC-risk-model/ + engine/output/clean_buffer_rates.csv.
+# Aggregates the JRC per-hexagon buffer-pool contributions (Marinelli 2026) to
+# country x forest_type summaries (P10, mean, P90; cells with at least five
+# hexagons, assigned to countries by spatial join), joins them to our empirical
+# TVaR99 buffer rates, and writes the comparison table with each cell's
+# in-band flag and absolute difference to the JRC mean.
+# Reads data/JRC-risk-model/ and engine/output/clean_buffer_rates.csv.
 # =============================================================================
 cat("[13_jrc] per-country comparison vs JRC/Marinelli...\n")
 

@@ -1,15 +1,12 @@
 # Extract annual natural-disturbance rates per hexagon from the EFDA rasters.
 #
-# 03_buffer sets N_eff from the within-country spatial correlation c, which
-# takes sub-national rates to estimate. The JRC 35 km hexagons put those rates
-# on the same grid as the JRC risk model, so the two compare directly.
+# For one country: rasterise the JRC 35 km hexagon grid onto the EFDA
+# disturbance-agent stack (39 annual bands, 1985-2023), mask to forest, and
+# compute per hexagon and year the share of forest pixels disturbed by wind,
+# bark beetle or fire. A single multi-band zonal call covers all years.
 #
 # Usage (from ~/efda_scratch):  Rscript extract_hexagon_series.R <country_lower> [gpkg]
 # Output: hex_rates/<country>.rds  — hex_id x year long table with lambda_natural
-#
-# Same rasters, agent codes and forest mask as extract_country_split.R, but
-# rasterises hex_id instead of the two-level biome zones and runs one
-# multi-band zonal call over all 39 years instead of a per-year freq() loop.
 suppressPackageStartupMessages({ library(terra); library(sf); library(dplyr) })
 
 args    <- commandArgs(trailingOnly = TRUE)
