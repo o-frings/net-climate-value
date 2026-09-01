@@ -90,10 +90,18 @@ local({
   fwd$rcp_label <- factor(fwd$rcp_label, levels = c("RCP 4.5", "RCP 8.5"))
   label_year <- fwd$label_year[1]
 
-  # Gradient line colour per scenario (precomputed in the fragment).
-  ts_colours <- setNames(area_stats$line_colour, area_stats$scn_label)
-
   area_end_labels <- fd("fd_fig5_ts_ends")
+
+  # Line colours: same blue-beige-red ramp as panel a, but keyed to each
+  # scenario's end-of-century area (RCP 4.5 endpoint) rather than today's MC
+  # median — the two orderings differ (reducing-only has the fatter right
+  # tail), and keying on the endpoint keeps tone monotone with the visual
+  # stacking of the lines.
+  end_vals   <- setNames(area_end_labels$area_mean, area_end_labels$scn_label)
+  ts_ramp    <- scales::col_numeric(palette = c("#BDD7EE", "#E8D5C4", "#C0392B"),
+                                    domain = range(end_vals))
+  ts_colours <- setNames(ts_ramp(end_vals), names(end_vals))
+
   area_end_labels$scn_label <- factor(area_end_labels$scn_label, levels = area_levels)
 
   panel_scn_ts <- ggplot(fwd, aes(x = year, y = area_mean,
