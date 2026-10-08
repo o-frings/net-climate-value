@@ -3,8 +3,8 @@
 # sync_to_manuscript.sh  —  copy rebuilt figures + tables into the manuscript
 # =============================================================================
 # Mirrors the old analysis/sync_figures.sh, but sources the REBUILT outputs:
-#   figures/output/*.{pdf,png}  -> manuscript_overleaf_clone/Figures/
-#   figures/output/tables/*.tex -> manuscript_overleaf_clone/Tables/
+#   figures/output/*.{pdf,png}  -> paper/Figures/
+#   figures/output/tables/*.tex -> paper/Tables/
 #
 # WARNING: this OVERWRITES the committed manuscript figures/tables with the
 # rebuilt ones, whose numbers have SHIFTED (establishment-floor dropped -> higher
@@ -14,7 +14,7 @@
 #   bash figures/sync_to_manuscript.sh
 # =============================================================================
 set -e
-MAN="../manuscript_overleaf_clone"
+MAN="../paper"
 SRC="figures/output"
 [ -d "$MAN" ] || { echo "ERROR: manuscript folder not found at $MAN" >&2; exit 1; }
 mkdir -p "$MAN/Figures" "$MAN/Tables"

@@ -13,7 +13,7 @@ The analysis runs in two stages from the cached inputs in `data/processed/`:
 2. **`figures/`** renders the figures and tables from `engine/output/`.
    `figures/run_figures.R` writes PDFs/PNGs to `figures/output/` and `.tex` tables
    to `figures/output/tables/`; `figures/sync_to_manuscript.sh` copies them into
-   `../manuscript_overleaf_clone/`.
+   `../paper/`.
 
 ## The model
 
