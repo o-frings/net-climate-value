@@ -13,10 +13,10 @@
 local({
   # ─── Shared butterfly-decomposition axis title ───
   butterfly_axis_title <- paste0(
-    "← <b style='color:#8C8C8C'>Buffer</b>", " · ",
-    "<b style='color:#ABABAB'>Time</b>",
-    " <span style='color:#ABABAB; font-size:7pt'>(τ = 10–100 yr)</span>", " · ",
-    "<b style='color:#606060'>Leakage</b>",
+    "← <b style='color:#CCCCCC'>Buffer</b>", " · ",
+    "<b style='color:#999999'>Time</b>",
+    " <span style='color:#999999; font-size:7pt'>(τ = 10–100 yr)</span>", " · ",
+    "<b style='color:#666666'>Leakage</b>",
     "  <span style='color:#BBBBBB'>|</span>  ", "Net issuance →")
 
   # ─── Panel a: butterfly decomposition ───
@@ -27,7 +27,7 @@ local({
   ded_long_v2$bar_label <- factor(ded_long_v2$bar_label, levels = bar_levels)
   net_bar_v2$bar_label  <- factor(net_bar_v2$bar_label,  levels = bar_levels)
   ded_long_v2$component <- factor(ded_long_v2$component, levels = c("Buffer", "Time", "Leakage"))
-  ded_cols_v2 <- c(Leakage = "#808080", Time = "#C8C8C8", Buffer = "#A8A8A8")
+  ded_cols_v2 <- c(Leakage = "#666666", Time = "#999999", Buffer = "#CCCCCC")
 
   fig_a <- ggplot() +
     geom_col(data = ded_long_v2, aes(x = bar_label, y = -share, fill = component),
@@ -35,14 +35,14 @@ local({
     scale_fill_manual(values = ded_cols_v2, name = NULL, guide = "none") +
     ggnewscale::new_scale_fill() +
     geom_col(data = net_bar_v2, aes(x = bar_label, y = net_share),
-             fill = "#4292C6", width = 0.65, colour = NA) +
+             fill = "#2C7FB8", width = 0.65, colour = NA) +
     # negative-leakage gain: supply-positive practices add timber supply, so
     # leakage returns value (leak_gain > 0). Drawn from the 0 axis (centre) in
     # the Leakage colour so it reads as leakage adding to net issuance.
     geom_rect(data = subset(net_bar_v2, leak_gain > 0),
               aes(xmin = as.integer(bar_label) - 0.325, xmax = as.integer(bar_label) + 0.325,
                   ymin = 0, ymax = leak_gain),
-              fill = "#808080", inherit.aes = FALSE) +
+              fill = "#666666", inherit.aes = FALSE) +
     geom_text(data = net_bar_v2, aes(x = bar_label, y = label_y, label = label),
               size = 2.4, colour = "white", fontface = "bold") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +
@@ -66,7 +66,7 @@ local({
     geom_segment(aes(x = p5_net, xend = p95_net, y = ptype, yend = ptype), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p5_net, xend = p5_net, y = y_num - rh_b * 0.5, yend = y_num + rh_b * 0.5), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p95_net, xend = p95_net, y = y_num - rh_b * 0.5, yend = y_num + rh_b * 0.5), colour = "#999999", linewidth = 0.35) +
-    geom_rect(aes(xmin = p25_net, xmax = p75_net, ymin = y_num - rh_b, ymax = y_num + rh_b), fill = "#4292C6", alpha = 0.85, colour = NA) +
+    geom_rect(aes(xmin = p25_net, xmax = p75_net, ymin = y_num - rh_b, ymax = y_num + rh_b), fill = "#2C7FB8", alpha = 0.85, colour = NA) +
     geom_segment(aes(x = median_net, xend = median_net, y = y_num - rh_b, yend = y_num + rh_b), colour = "white", linewidth = 0.6) +
     geom_point(aes(x = mean_net), shape = 21, size = 2, fill = "#333333", colour = "white", stroke = 0.5) +
     geom_text(aes(x = label_x, label = label),
@@ -89,8 +89,7 @@ local({
     geom_segment(aes(x = p5_gap, xend = p95_gap, y = scheme_name, yend = scheme_name), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p5_gap, xend = p5_gap, y = y_num - rh_c * 0.5, yend = y_num + rh_c * 0.5), colour = "#999999", linewidth = 0.35) +
     geom_segment(aes(x = p95_gap, xend = p95_gap, y = y_num - rh_c * 0.5, yend = y_num + rh_c * 0.5), colour = "#999999", linewidth = 0.35) +
-    geom_rect(aes(xmin = p25_gap, xmax = p75_gap, ymin = y_num - rh_c, ymax = y_num + rh_c, fill = mean_gap), alpha = 0.85, colour = NA) +
-    scale_fill_gradient2(low = "#BDD7EE", mid = "#E8D5C4", high = "#C0392B", midpoint = 0, guide = "none") +
+    geom_rect(aes(xmin = p25_gap, xmax = p75_gap, ymin = y_num - rh_c, ymax = y_num + rh_c), fill = "#C0392B", alpha = 0.85, colour = NA) +
     geom_segment(aes(x = median_gap, xend = median_gap, y = y_num - rh_c, yend = y_num + rh_c), colour = "white", linewidth = 0.6) +
     geom_point(aes(x = mean_gap), shape = 21, size = 2, fill = "#333333", colour = "white", stroke = 0.5) +
     geom_text(aes(x = label_x, label = label),
@@ -107,7 +106,7 @@ local({
   tornado <- fd("fd_fig3_d")
   tornado$label <- factor(tornado$label, levels = tornado$label[order(tornado$ord)])
   fig_d <- ggplot(tornado, aes(x = label, y = rho)) +
-    geom_col(width = 0.55, colour = NA, fill = "#999999") +
+    geom_col(width = 0.55, colour = NA, fill = "#888888") +
     geom_hline(yintercept = 0, colour = "#CCCCCC", linewidth = 0.3) +
     geom_text(aes(label = sprintf("%.2f", rho), hjust = text_hjust),
               size = 2.2, colour = NATURE_GREY) +
