@@ -3,8 +3,11 @@
 # sync_to_manuscript.sh  —  copy rebuilt figures + tables into the manuscript
 # =============================================================================
 # Mirrors the old analysis/sync_figures.sh, but sources the REBUILT outputs:
-#   figures/output/*.{pdf,png}  -> paper/Figures/
-#   figures/output/tables/*.tex -> paper/Tables/
+#   figures/output/*.pdf        -> paper/figures/  (vector PDFs; the manuscript embeds no PNGs)
+#   figures/output/tables/*.tex -> paper/tables/
+# Only files the manuscript folder already holds are updated. Outputs the manuscript
+# does not use are listed and skipped, so a new figure or table enters the manuscript
+# only when someone adds it there on purpose. Any failure stops the script.
 #
 # WARNING: this OVERWRITES the committed manuscript figures/tables with the
 # rebuilt ones, whose numbers have SHIFTED (establishment-floor dropped -> higher
@@ -13,17 +16,30 @@
 # or the figures and text will be inconsistent. Run from analysis/:
 #   bash figures/sync_to_manuscript.sh
 # =============================================================================
-set -e
-MAN="../paper"
+set -euo pipefail
+shopt -s nullglob
+MAN="${MAN:-../paper}"
 SRC="figures/output"
-[ -d "$MAN" ] || { echo "ERROR: manuscript folder not found at $MAN" >&2; exit 1; }
-mkdir -p "$MAN/Figures" "$MAN/Tables"
+for d in "$MAN/figures" "$MAN/tables" "$SRC" "$SRC/tables"; do
+  [ -d "$d" ] || { echo "ERROR: folder not found: $d" >&2; exit 1; }
+done
 
-echo "Figures: $SRC/*.{pdf,png} -> $MAN/Figures/"
-rsync -av "$SRC/"*.pdf "$MAN/Figures/" 2>/dev/null || true
-rsync -av "$SRC/"*.png "$MAN/Figures/" 2>/dev/null || true
-echo "Tables : $SRC/tables/*.tex -> $MAN/Tables/"
-rsync -av "$SRC/tables/"*.tex "$MAN/Tables/" 2>/dev/null || true
+# update <source dir> <glob> <manuscript dir>
+update() {
+  local src=$1 pat=$2 dest=$3 n=0 f b
+  local files=("$src"/$pat)
+  [ ${#files[@]} -gt 0 ] || { echo "ERROR: no $pat in $src" >&2; exit 1; }
+  for f in "${files[@]}"; do
+    b=$(basename "$f")
+    if [ -e "$dest/$b" ]; then cp "$f" "$dest/$b"; n=$((n + 1))
+    else echo "  skipped (not in the manuscript): $b"; fi
+  done
+  for f in "$dest"/$pat; do
+    [ -e "$src/$(basename "$f")" ] || echo "  WARNING: in the manuscript but not produced: $(basename "$f")"
+  done
+  echo "$dest: $n files updated"
+}
 
-echo "Done. $(ls -1 "$MAN/Figures"/*.pdf | wc -l) figure PDFs, $(ls -1 "$MAN/Tables"/*.tex | wc -l) tables in manuscript."
-echo "NEXT: reconcile main.tex numbers/captions per docs/audits/P5_MANUSCRIPT_RESYNC.md."
+update "$SRC" "*.pdf" "$MAN/figures"
+update "$SRC/tables" "*.tex" "$MAN/tables"
+echo "NEXT: reconcile manuscript.tex numbers/captions per docs/audits/P5_MANUSCRIPT_RESYNC.md."
